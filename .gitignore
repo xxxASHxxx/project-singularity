@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.env
+venv/
+.venv/
+edge/logs/failed_payloads.jsonl
+
+# Java / Maven
+api/target/
+*.jar
+*.war
+*.class
+
+# Node / Next.js
+node_modules/
+.next/
+mock-supplier/.next/
+mock-supplier/node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# SQLite
+*.db
+*.sqlite
+
+# Docker
+.dockerignore
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# YOLOv8 model weights (large binary, not needed in repo)
+*.pt
+config/shelf_baseline.jpg

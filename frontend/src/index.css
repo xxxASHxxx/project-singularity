@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background-color: #0A0A0B;
+    color: #F5F5F5;
+    font-family: 'Inter', system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  :root {
+    --color-base: #0A0A0B;
+    --color-panel: #141416;
+    --color-border: #262626;
+    --color-red: #FF3B30;
+    --color-red-dim: #B3261E;
+    --color-amber: #FF8A00;
+    --color-amber-dim: #C4600A;
+    --color-green: #22C55E;
+    --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  }
+}
+
+@layer components {
+  .panel {
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6B7280;
+    margin-bottom: 1rem;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .status-pending { background: rgba(255,138,0,0.15); color: #FF8A00; border: 1px solid rgba(255,138,0,0.3); }
+  .status-approved { background: rgba(196,96,10,0.15); color: #C4600A; border: 1px solid rgba(196,96,10,0.3); }
+  .status-running { background: rgba(255,59,48,0.15); color: #FF3B30; border: 1px solid rgba(255,59,48,0.3); animation: pulse-glow 1.5s ease-in-out infinite; }
+  .status-completed { background: rgba(34,197,94,0.15); color: #22C55E; border: 1px solid rgba(34,197,94,0.3); }
+  .status-failed { background: rgba(179,38,30,0.2); color: #B3261E; border: 1px solid rgba(179,38,30,0.4); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0); }
+  50% { box-shadow: 0 0 8px 2px rgba(255,59,48,0.4); }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.drawer-animate { animation: slide-in 0.25s ease-out; }
+
+scrollbar-width: thin;
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0A0A0B; }
+::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }

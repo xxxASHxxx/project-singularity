@@ -1,0 +1,80 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: singularity-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: singularity
+      MYSQL_USER: singularity
+      MYSQL_PASSWORD: singularity_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "singularity", "-psingularity_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - singularity
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: singularity-api
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/singularity?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: singularity
+      DB_PASSWORD: singularity_pass
+      CORS_ALLOWED_ORIGIN: http://localhost:5173
+      AUTO_APPROVE: "false"
+      SURGE_THRESHOLD: "4"
+      LOW_STOCK_THRESHOLD: "20"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - singularity
+    restart: on-failure
+
+  mock-supplier:
+    build:
+      context: ./mock-supplier
+      dockerfile: Dockerfile
+    container_name: singularity-mock-supplier
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persist SQLite orders DB across restarts
+      - supplier_db:/app/data
+    environment:
+      SUPPLIER_DB_PATH: /app/data/supplier.db
+    networks:
+      - singularity
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: singularity-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    networks:
+      - singularity
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  supplier_db:
+
+networks:
+  singularity:
+    driver: bridge

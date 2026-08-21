@@ -1,0 +1,10 @@
+{
+  "zone_roi": [[100, 100], [540, 100], [540, 380], [100, 380]],
+  "shelf_roi": [[50, 50], [590, 50], [590, 430], [50, 430]],
+  "surge_threshold": 4,
+  "low_stock_threshold": 20,
+  "sample_interval_seconds": 5,
+  "reorder_base_qty": 50,
+  "api_url": "http://localhost:8080",
+  "device_id": "edge-node-01"
+}

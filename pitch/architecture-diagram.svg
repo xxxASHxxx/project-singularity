@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500">
+  <!-- Background -->
+  <rect width="900" height="500" fill="#0A0A0B"/>
+  
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold" fill="#FF3B30" letter-spacing="3">PROJECT SINGULARITY</text>
+  <text x="450" y="55" text-anchor="middle" font-family="monospace" font-size="10" fill="#6B7280" letter-spacing="2">EDGE-TO-COMMERCE INTELLIGENCE SYSTEM</text>
+
+  <!-- ===== ROW 1: Edge → API → MySQL ===== -->
+  
+  <!-- Webcam box -->
+  <rect x="20" y="80" width="130" height="60" rx="6" fill="#141416" stroke="#262626" stroke-width="1"/>
+  <text x="85" y="106" text-anchor="middle" font-family="monospace" font-size="11" fill="#F5F5F5">📹 Webcam</text>
+  <text x="85" y="122" text-anchor="middle" font-family="monospace" font-size="9" fill="#6B7280">720p/1080p RGB</text>
+  <text x="85" y="134" text-anchor="middle" font-family="monospace" font-size="9" fill="#6B7280">cv2.VideoCapture(0)</text>
+
+  <!-- Arrow webcam → edge -->
+  <line x1="150" y1="110" x2="178" y2="110" stroke="#FF3B30" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+  <!-- Edge Node box -->
+  <rect x="178" y="70" width="160" height="80" rx="6" fill="#141416" stroke="#FF3B30" stroke-width="1" opacity="0.9"/>
+  <text x="258" y="94" text-anchor="middle" font-family="monospace" font-size="10" fill="#FF3B30" font-weight="bold">EDGE NODE</text>
+  <text x="258" y="108" text-anchor="middle" font-family="monospace" font-size="9" fill="#F5F5F5">Python CV</text>
+  <text x="258" y="120" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">● YOLOv8n (persons)</text>
+  <text x="258" y="132" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">● SSIM (shelf fill)</text>
+  <text x="258" y="144" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">POST every 5s</text>
+
+  <!-- Arrow edge → API -->
+  <line x1="338" y1="110" x2="370" y2="110" stroke="#FF3B30" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="354" y="104" text-anchor="middle" font-family="monospace" font-size="7" fill="#6B7280">JSON</text>
+
+  <!-- Spring Boot API box -->
+  <rect x="370" y="70" width="160" height="80" rx="6" fill="#141416" stroke="#FF8A00" stroke-width="1"/>
+  <text x="450" y="94" text-anchor="middle" font-family="monospace" font-size="10" fill="#FF8A00" font-weight="bold">SPRING BOOT API</text>
+  <text x="450" y="108" text-anchor="middle" font-family="monospace" font-size="9" fill="#F5F5F5">Java 21 + MySQL 8</text>
+  <text x="450" y="120" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">POST /api/v1/telemetry</text>
+  <text x="450" y="132" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">GET /api/v1/missions</text>
+  <text x="450" y="144" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">PATCH /approve</text>
+
+  <!-- Arrow API → MySQL -->
+  <line x1="530" y1="110" x2="558" y2="110" stroke="#FF8A00" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+
+  <!-- MySQL box -->
+  <rect x="558" y="80" width="120" height="60" rx="6" fill="#141416" stroke="#262626" stroke-width="1"/>
+  <text x="618" y="106" text-anchor="middle" font-family="monospace" font-size="10" fill="#F5F5F5">🗄️ MySQL 8</text>
+  <text x="618" y="120" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">telemetry_events</text>
+  <text x="618" y="132" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">agent_missions</text>
+
+  <!-- ===== THRESHOLD TRIGGER (vertical) ===== -->
+  <text x="450" y="168" text-anchor="middle" font-family="monospace" font-size="9" fill="#FF3B30">▼ threshold crossed ▼</text>
+  <line x1="450" y1="150" x2="450" y2="185" stroke="#FF3B30" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ===== ROW 2: Safety Rail -->
+  <rect x="320" y="188" width="260" height="35" rx="4" fill="#1a0a00" stroke="#FF8A00" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="450" y="206" text-anchor="middle" font-family="monospace" font-size="9" fill="#FF8A00">⚠ SAFETY RAIL: AUTO_APPROVE=false</text>
+  <text x="450" y="217" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">human must approve in command center</text>
+
+  <!-- ===== ROW 3: Three agents ===== -->
+  <line x1="450" y1="223" x2="450" y2="255" stroke="#FF3B30" stroke-width="1" stroke-dasharray="4,3"/>
+  
+  <!-- Branches to three agents -->
+  <line x1="175" y1="255" x2="720" y2="255" stroke="#262626" stroke-width="1"/>
+  <line x1="175" y1="255" x2="175" y2="275" stroke="#262626" stroke-width="1"/>
+  <line x1="450" y1="255" x2="450" y2="275" stroke="#262626" stroke-width="1"/>
+  <line x1="720" y1="255" x2="720" y2="275" stroke="#262626" stroke-width="1"/>
+
+  <!-- Restock Agent -->
+  <rect x="60" y="275" width="230" height="90" rx="6" fill="#141416" stroke="#FF3B30" stroke-width="1"/>
+  <text x="175" y="295" text-anchor="middle" font-family="monospace" font-size="10" fill="#FF3B30" font-weight="bold">RESTOCK AGENT</text>
+  <text x="175" y="309" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">workspace: restock-agent</text>
+  <text x="175" y="323" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Poll APPROVED missions</text>
+  <text x="175" y="335" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Browser → mock supplier</text>
+  <text x="175" y="347" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Add to cart + place PO</text>
+  <text x="175" y="359" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Screenshot confirmation</text>
+
+  <!-- Pricing Agent -->
+  <rect x="335" y="275" width="230" height="90" rx="6" fill="#141416" stroke="#FF8A00" stroke-width="1"/>
+  <text x="450" y="295" text-anchor="middle" font-family="monospace" font-size="10" fill="#FF8A00" font-weight="bold">PRICING AGENT</text>
+  <text x="450" y="309" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">workspace: pricing-agent</text>
+  <text x="450" y="323" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Poll SURGE missions</text>
+  <text x="450" y="335" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Compute +≤15% adjustment</text>
+  <text x="450" y="347" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Write rationale artifact</text>
+  <text x="450" y="359" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ PATCH /products/{id}</text>
+
+  <!-- Reporting Agent -->
+  <rect x="610" y="275" width="230" height="90" rx="6" fill="#141416" stroke="#6B7280" stroke-width="1"/>
+  <text x="720" y="295" text-anchor="middle" font-family="monospace" font-size="10" fill="#F5F5F5" font-weight="bold">REPORTING AGENT</text>
+  <text x="720" y="309" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">workspace: verification-agent</text>
+  <text x="720" y="323" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Poll COMPLETED missions</text>
+  <text x="720" y="335" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Assemble Markdown summary</text>
+  <text x="720" y="347" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ POST PLAN_MD artifact</text>
+  <text x="720" y="359" text-anchor="middle" font-family="monospace" font-size="8" fill="#F5F5F5">○ Full audit trail</text>
+
+  <!-- ===== ROW 4: React Command Center ===== -->
+  <line x1="175" y1="365" x2="175" y2="410" stroke="#262626" stroke-width="1"/>
+  <line x1="450" y1="365" x2="450" y2="410" stroke="#262626" stroke-width="1"/>
+  <line x1="720" y1="365" x2="720" y2="410" stroke="#262626" stroke-width="1"/>
+  <line x1="175" y1="410" x2="720" y2="410" stroke="#262626" stroke-width="1"/>
+  <line x1="450" y1="410" x2="450" y2="425" stroke="#22C55E" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <!-- React Command Center -->
+  <rect x="295" y="425" width="310" height="55" rx="6" fill="#141416" stroke="#22C55E" stroke-width="1"/>
+  <text x="450" y="447" text-anchor="middle" font-family="monospace" font-size="11" fill="#22C55E" font-weight="bold">REACT COMMAND CENTER</text>
+  <text x="450" y="461" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">Live telemetry chart · Mission queue · Approve button</text>
+  <text x="450" y="473" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">Agent activity feed · Mission detail drawer · Artifact trail</text>
+
+  <!-- Mock Supplier (bottom right) -->
+  <rect x="720" y="390" width="155" height="55" rx="6" fill="#141416" stroke="#6B7280" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="798" y="412" text-anchor="middle" font-family="monospace" font-size="10" fill="#F5F5F5">🏪 Mock Supplier</text>
+  <text x="798" y="426" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">Apex Supply Co.</text>
+  <text x="798" y="438" text-anchor="middle" font-family="monospace" font-size="8" fill="#6B7280">Next.js + SQLite</text>
+  <line x1="720" y1="415" x2="610" y2="335" stroke="#6B7280" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-gray)"/>
+
+  <!-- Arrowhead definitions -->
+  <defs>
+    <marker id="arrow-red" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#FF3B30"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#FF8A00"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#22C55E"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#6B7280"/>
+    </marker>
+  </defs>
+</svg>

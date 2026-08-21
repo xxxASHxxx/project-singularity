@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/singularity?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USER:singularity}
+    password: ${DB_PASSWORD:singularity_pass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+  auto-approve: ${AUTO_APPROVE:false}
+  surge-threshold: ${SURGE_THRESHOLD:4}
+  low-stock-threshold: ${LOW_STOCK_THRESHOLD:20}
+
+logging:
+  level:
+    com.singularity: DEBUG
