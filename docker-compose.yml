@@ -33,6 +33,9 @@ services:
       AUTO_APPROVE: "false"
       SURGE_THRESHOLD: "4"
       LOW_STOCK_THRESHOLD: "20"
+      RAZORPAY_KEY_ID: rzp_test_TSVn4GUskMHl0f
+      RAZORPAY_KEY_SECRET: 9Doe4GPdNwz5qj0xnNjEZbnR
+      RAZORPAY_WEBHOOK_SECRET: singularity_secret_123
     ports:
       - "8080:8080"
     depends_on:

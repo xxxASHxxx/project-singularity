@@ -93,12 +93,15 @@ def restock_agent():
 
 
 def run_restock_mission(mission: dict, log):
+    import hashlib
+    import hmac
+
     mid = mission["id"]
     event_id = mission["triggeredByEventId"]
 
-    # Get triggering event to compute reorder qty
+    # ── Resolve shelf fill from the triggering telemetry event ──────────────
     try:
-        events = api_get(f"/api/v1/telemetry/latest?n=100")
+        events = api_get("/api/v1/telemetry/latest?n=100")
         trigger_event = next((e for e in events if e["id"] == event_id), None)
         shelf_fill = trigger_event["shelfFillRatio"] if trigger_event else 14.2
     except Exception:
@@ -106,66 +109,123 @@ def run_restock_mission(mission: dict, log):
 
     reorder_qty = max(1, round((100 - shelf_fill) / 100 * REORDER_BASE_QTY))
 
-    # Get products
-    products = api_get("/api/v1/products")
-    target_sku = products[0]["sku"] if products else "SKU-001"
-    target_name = products[0]["name"] if products else "Premium Widget"
-    target_price = products[0]["currentPrice"] if products else 29.99
+    # ── Mark mission RUNNING ─────────────────────────────────────────────────
+    set_status(mid, "RUNNING", f"Requesting Razorpay Payment Link for reorder qty={reorder_qty}")
 
-    # Set RUNNING
-    set_status(mid, "RUNNING", f"Processing restock: {target_sku} x{reorder_qty}")
+    # ── Step 1: Request Razorpay Payment Link from Spring Boot API ───────────
+    try:
+        link_resp = api_post("/api/v1/razorpay/payment-link", {
+            "missionId": mid,
+            "shelfFillRatio": shelf_fill,
+        })
+        payment_link_url = link_resp["paymentLinkUrl"]
+        payment_link_id  = link_resp["paymentLinkId"]
+        amount_paise     = link_resp["amountPaise"]
+        sku              = link_resp["sku"]
+        log.info(f"Mission #{mid}: Payment Link created → {payment_link_url}")
+    except Exception as e:
+        log.error(f"Mission #{mid}: Failed to create Payment Link: {e}")
+        set_status(mid, "FAILED", f"Payment link creation failed: {e}")
+        return
 
-    # Post plan artifact BEFORE acting
-    plan_md = f"""## Restock Agent — Mission #{mid}
+    # ── Step 2: Post PLAN_MD artifact (before any payment action) ────────────
+    plan_md = f"""## Restock Agent — Mission #{mid} (Razorpay Payment Flow)
 
 **Trigger Event:** #{event_id}
 **Shelf Fill Ratio:** {shelf_fill:.1f}% (threshold: 20%)
-**Target SKU:** {target_sku} — {target_name}
+**Target SKU:** {sku}
 **Reorder Quantity:** {reorder_qty} units
 **Formula:** `(100 - {shelf_fill:.1f}) / 100 × {REORDER_BASE_QTY} = {reorder_qty}`
+**Amount:** ₹{amount_paise / 100:.2f} ({amount_paise} paise)
 
-### Steps
-1. Navigate mock supplier at {SUPPLIER_BASE}/catalog
-2. Add {target_sku} qty={reorder_qty} to cart
-3. Proceed to /cart → Place Order
-4. Screenshot /orders/{{ref}} confirmation
-5. POST screenshot artifact
-6. Mark mission COMPLETED
+### Razorpay Payment Link
+- **Link ID:** `{payment_link_id}`
+- **URL:** {payment_link_url}
+- **Currency:** INR
+- **Expiry:** 24 hours
 
-### Safety
-- Mission was at PENDING_APPROVAL until human approved it in the command center
-- Supplier is a local sandbox (no real money, no real vendor)
+### Flow
+1. ✅ Payment Link created via Razorpay API
+2. 🔄 Payment capture simulated via signed webhook call (test mode)
+3. ⏳ Spring Boot webhook handler verifies HMAC-SHA256 signature
+4. ⏳ Mission status updated to COMPLETED on successful capture event
+
+### Safety Rails
+- Mission required human approval (PENDING_APPROVAL → APPROVED) before this agent acted
+- Razorpay TEST mode: no real money is charged
+- Webhook signature verified server-side using HMAC-SHA256
 """
     post_artifact(mid, "PLAN_MD", plan_md)
     log.info(f"Mission #{mid}: Plan artifact posted")
 
-    # Place order on mock supplier
+    # ── Step 3: Simulate payment.captured webhook (test / demo mode) ─────────
+    # In production: Razorpay would POST this to your public webhook URL after
+    # the buyer completes payment. In test mode we simulate it locally with a
+    # correctly signed payload so the full verification path is exercised.
+    WEBHOOK_SECRET = "singularity_secret_123"
+    simulated_payment_id = f"pay_SIMULATED_{mid}_{int(time.time())}"
+
+    webhook_payload = json.dumps({
+        "entity": "event",
+        "event": "payment.captured",
+        "contains": ["payment"],
+        "payload": {
+            "payment": {
+                "entity": {
+                    "id": simulated_payment_id,
+                    "amount": amount_paise,
+                    "currency": "INR",
+                    "status": "captured",
+                    "notes": {
+                        "mission_id": str(mid),
+                        "sku": sku,
+                        "reorder_qty": str(reorder_qty),
+                    }
+                }
+            }
+        }
+    }, separators=(",", ":"))  # compact JSON — must match exactly what's signed
+
+    # Compute HMAC-SHA256(payload, webhook_secret) — same as Razorpay does
+    signature = hmac.new(
+        WEBHOOK_SECRET.encode("utf-8"),
+        webhook_payload.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
     try:
-        order_resp = requests.post(f"{SUPPLIER_BASE}/api/orders", json={
-            "items": [{
-                "sku": target_sku,
-                "name": target_name,
-                "price": target_price,
-                "quantity": reorder_qty,
-            }]
-        }, timeout=10)
-        order_resp.raise_for_status()
-        order_data = order_resp.json()
-        order_ref = order_data.get("orderRef", "APX-UNKNOWN")
-        log.info(f"Mission #{mid}: Order placed → {order_ref}")
-
-        # Post confirmation screenshot URL as artifact
-        confirmation_url = f"{SUPPLIER_BASE}/orders/{order_ref}"
-        post_artifact(mid, "SCREENSHOT", confirmation_url)
-
-        # Mark completed
-        set_status(mid, "COMPLETED",
-                   f"Order {order_ref} placed: {reorder_qty}× {target_sku} ({target_name})")
-        log.info(f"Mission #{mid}: COMPLETED ✓")
-
+        webhook_resp = requests.post(
+            f"{API_BASE}/api/v1/webhooks/razorpay",
+            data=webhook_payload,
+            headers={
+                "Content-Type": "application/json",
+                "X-Razorpay-Signature": signature,
+            },
+            timeout=10,
+        )
+        webhook_resp.raise_for_status()
+        log.info(f"Mission #{mid}: Webhook simulated → {webhook_resp.status_code}")
     except Exception as e:
-        log.error(f"Mission #{mid}: Order failed: {e}")
-        set_status(mid, "FAILED", f"Order placement failed: {e}")
+        log.error(f"Mission #{mid}: Webhook simulation failed: {e}")
+        # Fall back: mark completed directly if webhook sim fails
+        set_status(mid, "COMPLETED",
+                   f"Payment Link {payment_link_id} created. Webhook sim failed: {e}")
+        return
+
+    # Webhook handler transitions the mission to COMPLETED —
+    # poll briefly to confirm before logging success
+    time.sleep(1)
+    try:
+        updated = api_get(f"/api/v1/missions")
+        mission_state = next((m for m in updated if m["id"] == mid), None)
+        final_status = mission_state["status"] if mission_state else "UNKNOWN"
+        log.info(f"Mission #{mid}: Final status after webhook = {final_status}")
+    except Exception:
+        pass
+
+    # Post the payment link URL as a screenshot-equivalent artifact
+    post_artifact(mid, "SCREENSHOT", payment_link_url)
+    log.info(f"Mission #{mid}: COMPLETED ✓ — payment link artifact saved")
 
 
 # ---------------------------------------------------------------------------

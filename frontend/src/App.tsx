@@ -5,6 +5,7 @@ import TelemetryPanel from './components/TelemetryPanel';
 import MissionQueue from './components/MissionQueue';
 import AgentActivityFeed from './components/AgentActivityFeed';
 import MissionDetailDrawer from './components/MissionDetailDrawer';
+import AnalyticsPanel from './components/AnalyticsPanel';
 import type { AgentMission } from './api/client';
 
 export default function App() {
@@ -23,6 +24,9 @@ export default function App() {
           </h1>
           <p className="text-sm text-gray-500 mt-1">Edge telemetry → Agent missions → Commerce automation</p>
         </div>
+
+        {/* Analytics strip — full width, above main grid */}
+        <AnalyticsPanel />
 
         {/* Main grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

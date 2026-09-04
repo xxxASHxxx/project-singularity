@@ -60,3 +60,25 @@ export const fetchArtifacts = (missionId: number) =>
 
 export const fetchProducts = () =>
   api.get<Product[]>('/api/v1/products').then(r => r.data);
+
+// Analytics
+export interface AnalyticsSnapshot {
+  missions: {
+    total: number;
+    byStatus: Record<string, number>;
+    byType: Record<string, number>;
+    avgApprovalTimeSeconds: number | null;
+    avgCompletionTimeSeconds: number | null;
+    successRate: number | null;
+  };
+  telemetry: {
+    totalEvents: number;
+    surgeEventsLast24h: number;
+    lowStockEventsLast24h: number;
+    avgOccupancy: number | null;
+    avgShelfFill: number | null;
+  };
+}
+
+export const fetchAnalytics = () =>
+  api.get<AnalyticsSnapshot>('/api/v1/analytics').then(r => r.data);

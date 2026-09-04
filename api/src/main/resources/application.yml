@@ -28,3 +28,13 @@ app:
 logging:
   level:
     com.singularity: DEBUG
+
+# Razorpay integration
+# Credentials are injected via environment variables.
+# The defaults below are the Razorpay TEST keys for local development only.
+razorpay:
+  key:
+    id:     ${RAZORPAY_KEY_ID:rzp_test_TSVn4GUskMHl0f}
+    secret: ${RAZORPAY_KEY_SECRET:9Doe4GPdNwz5qj0xnNjEZbnR}
+  webhook:
+    secret: ${RAZORPAY_WEBHOOK_SECRET:singularity_secret_123}

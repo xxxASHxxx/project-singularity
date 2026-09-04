@@ -26,4 +26,14 @@ public class Product {
 
     @Column(name = "stock_qty", nullable = false)
     private Integer stockQty;
+
+    /**
+     * Optimistic locking version column.
+     * Hibernate increments this on every UPDATE. If two concurrent writes
+     * race, the second one will see a stale version and throw
+     * OptimisticLockException before any data corruption can occur.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version = 0;
 }
