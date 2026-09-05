@@ -19,6 +19,7 @@ services:
       start_period: 30s
     networks:
       - singularity
+    restart: unless-stopped
 
   api:
     build:
