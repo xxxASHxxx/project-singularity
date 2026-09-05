@@ -42,7 +42,7 @@ def get_mock_sequence(device_id: str = "edge-node-01") -> Iterator[Dict[str, Any
         low_stock_flag = fill <= 20.0
         yield {
             "deviceId": device_id,
-            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
             "zoneOccupancyCount": occupancy,
             "shelfFillRatio": fill,
             "surgeFlag": surge_flag,

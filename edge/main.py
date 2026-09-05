@@ -6,6 +6,7 @@ Usage:
     python edge/main.py --mock --api-url http://localhost:8080
 """
 import argparse
+import datetime
 import json
 import logging
 import os
@@ -141,10 +142,9 @@ def run_live(args, cfg: Dict[str, Any]):
                 fill_ratio = shelf_detector.compute_fill_ratio(frame)
                 low_stock_flag = fill_ratio <= low_stock_threshold
 
-                import datetime
                 payload = {
                     'deviceId': device_id,
-                    'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+                    'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
                     'zoneOccupancyCount': occupancy,
                     'shelfFillRatio': round(fill_ratio, 2),
                     'surgeFlag': surge_flag,

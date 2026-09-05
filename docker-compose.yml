@@ -1,4 +1,4 @@
-version: '3.9'
+
 
 services:
   mysql:
@@ -33,9 +33,9 @@ services:
       AUTO_APPROVE: "false"
       SURGE_THRESHOLD: "4"
       LOW_STOCK_THRESHOLD: "20"
-      RAZORPAY_KEY_ID: rzp_test_TSVn4GUskMHl0f
-      RAZORPAY_KEY_SECRET: 9Doe4GPdNwz5qj0xnNjEZbnR
-      RAZORPAY_WEBHOOK_SECRET: singularity_secret_123
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_TSVn4GUskMHl0f}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-9Doe4GPdNwz5qj0xnNjEZbnR}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-singularity_secret_123}
     ports:
       - "8080:8080"
     depends_on:

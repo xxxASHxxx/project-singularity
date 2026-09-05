@@ -22,7 +22,7 @@ public class MissionArtifact {
     @Column(name = "artifact_type", nullable = false)
     private ArtifactType artifactType;
 
-    @Column(name = "storage_path", nullable = false, length = 512)
+    @Column(name = "storage_path", nullable = false, columnDefinition = "TEXT")
     private String storagePath;
 
     @Column(name = "created_at", updatable = false)

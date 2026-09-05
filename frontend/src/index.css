@@ -76,7 +76,7 @@
 
 .drawer-animate { animation: slide-in 0.25s ease-out; }
 
-scrollbar-width: thin;
+body { scrollbar-width: thin; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0A0A0B; }
 ::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }

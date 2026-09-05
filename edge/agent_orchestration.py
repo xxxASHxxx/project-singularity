@@ -16,7 +16,6 @@ Usage:
 import sys
 import json
 import time
-import math
 import datetime
 import threading
 import logging
@@ -397,7 +396,7 @@ Triggered by telemetry event #{mission.get('triggeredByEventId', '?')}
     report_md += f"""
 ---
 
-*Report assembled by Reporting Agent at {datetime.datetime.utcnow().isoformat()}Z*
+*Report assembled by Reporting Agent at {datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')}*
 *All agent actions are logged above. No action was taken without a preceding PLAN_MD artifact.*
 """
 

@@ -9,6 +9,6 @@ public class ArtifactRequest {
     private String artifactType;  // SCREENSHOT, RECORDING_URL, PLAN_MD, LOG
 
     @NotBlank
-    @Size(max = 512)
+    @Size(max = 16384)
     private String storagePath;
 }
