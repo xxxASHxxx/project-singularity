@@ -28,6 +28,8 @@ export default function App() {
     wasError.current = isError;
   }, [isError]);
 
+  const pendingCount = missions.filter(m => m.status === 'PENDING_APPROVAL').length;
+
   return (
     <div className="min-h-screen" style={{ background: '#0A0A0B' }}>
       {/* Connection-lost banner */}
@@ -54,7 +56,7 @@ export default function App() {
         </div>
       )}
 
-      <TopBar apiOk={!isError} />
+      <TopBar apiOk={!isError} pendingCount={pendingCount} />
 
       <div className="p-4 lg:p-6">
         {/* Header */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function TopBar({ apiOk }: { apiOk: boolean }) {
+export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pendingCount?: number }) {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -15,7 +15,27 @@ export default function TopBar({ apiOk }: { apiOk: boolean }) {
           <span className="font-mono text-sm font-semibold tracking-widest uppercase text-red-accent">Project Singularity</span>
         </div>
         <span className="text-border">|</span>
-        <span className="text-xs text-gray-500 uppercase tracking-widest">Command Center</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 uppercase tracking-widest">Command Center</span>
+          {pendingCount > 0 && (
+            <span
+              className="inline-flex items-center justify-center font-mono text-xs font-bold"
+              style={{
+                background: '#FF3B30',
+                color: '#fff',
+                borderRadius: '9999px',
+                minWidth: 20,
+                height: 20,
+                padding: '0 6px',
+                fontSize: 10,
+                boxShadow: '0 0 8px rgba(255,59,48,0.4)',
+                animation: 'pulse-glow 2s ease-in-out infinite',
+              }}
+            >
+              {pendingCount}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
