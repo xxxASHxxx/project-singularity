@@ -44,7 +44,16 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
       </div>
 
       {missions.length === 0 ? (
-        <div className="text-center text-gray-600 py-8 font-mono text-sm">No missions yet</div>
+        <div className="text-center py-10">
+          <svg className="mx-auto mb-3 radar-pulse" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="6" />
+            <circle cx="12" cy="12" r="2" />
+            <line x1="12" y1="2" x2="12" y2="6" />
+          </svg>
+          <p className="font-mono text-sm text-gray-600 mb-1">No missions yet</p>
+          <p className="text-xs text-gray-700">Waiting for edge telemetry to trigger events…</p>
+        </div>
       ) : (
         <div className="space-y-2 max-h-80 overflow-y-auto">
           {missions.map(mission => (

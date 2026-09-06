@@ -78,7 +78,13 @@ export default function AgentActivityFeed({ missions }: { missions: AgentMission
     <div className="panel p-5">
       <p className="section-title">Agent Activity Feed</p>
       {activeMissions.length === 0 ? (
-        <div className="text-center text-gray-600 py-8 font-mono text-sm">No agent activity yet. Approve a mission to begin.</div>
+        <div className="text-center py-10">
+          <svg className="mx-auto mb-3 radar-pulse" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+          <p className="font-mono text-sm text-gray-600 mb-1">No agent activity yet</p>
+          <p className="text-xs text-gray-700">Approve a mission to activate agents</p>
+        </div>
       ) : (
         <div className="max-h-96 overflow-y-auto">
           {activeMissions.map(m => <MissionArtifactGroup key={m.id} mission={m} />)}
