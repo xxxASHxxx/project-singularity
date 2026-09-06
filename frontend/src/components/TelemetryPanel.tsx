@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend } from 'recharts';
 import { useTelemetry } from '../hooks/usePolling';
 import type { TelemetryEvent } from '../api/client';
@@ -23,6 +23,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+/** Hook that returns true for 350ms whenever `value` changes. */
+function useFlash(value: any): boolean {
+  const [flash, setFlash] = useState(false);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (prev.current !== value && value !== undefined) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 350);
+      prev.current = value;
+      return () => clearTimeout(t);
+    }
+    prev.current = value;
+  }, [value]);
+  return flash;
+}
+
 export default function TelemetryPanel() {
   const { data: events = [], isError } = useTelemetry();
 
@@ -37,6 +53,9 @@ export default function TelemetryPanel() {
   const surgeFiring = latest?.surgeFlag;
   const lowStockFiring = latest?.lowStockFlag;
 
+  const occupancyFlash = useFlash(latest?.zoneOccupancyCount);
+  const fillFlash = useFlash(latest ? Math.round(latest.shelfFillRatio * 10) : undefined);
+
   return (
     <div className="panel p-5">
       <p className="section-title">Live Telemetry</p>
@@ -46,7 +65,7 @@ export default function TelemetryPanel() {
         <div className={`panel p-4 ${surgeFiring ? 'border-red-accent' : ''}`}
              style={{ borderColor: surgeFiring ? '#FF3B30' : undefined, boxShadow: surgeFiring ? '0 0 16px rgba(255,59,48,0.2)' : undefined }}>
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Zone Occupancy</p>
-          <p className="font-mono text-5xl font-bold" style={{ color: surgeFiring ? '#FF3B30' : '#F5F5F5' }}>
+          <p className={`font-mono text-5xl font-bold ${occupancyFlash ? 'value-flash' : ''}`} style={{ color: surgeFiring ? '#FF3B30' : '#F5F5F5', display: 'inline-block' }}>
             {latest?.zoneOccupancyCount ?? '—'}
           </p>
           {surgeFiring && <p className="text-xs text-red-accent mt-1 font-mono">⚡ SURGE DETECTED</p>}
@@ -55,7 +74,7 @@ export default function TelemetryPanel() {
         <div className={`panel p-4 ${lowStockFiring ? 'border-amber-accent' : ''}`}
              style={{ borderColor: lowStockFiring ? '#FF8A00' : undefined, boxShadow: lowStockFiring ? '0 0 16px rgba(255,138,0,0.2)' : undefined }}>
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Shelf Fill Ratio</p>
-          <p className="font-mono text-5xl font-bold" style={{ color: lowStockFiring ? '#FF8A00' : '#F5F5F5' }}>
+          <p className={`font-mono text-5xl font-bold ${fillFlash ? 'value-flash' : ''}`} style={{ color: lowStockFiring ? '#FF8A00' : '#F5F5F5', display: 'inline-block' }}>
             {latest ? `${latest.shelfFillRatio.toFixed(1)}%` : '—'}
           </p>
           {lowStockFiring && <p className="text-xs text-amber-accent mt-1 font-mono">⚠ LOW STOCK</p>}
