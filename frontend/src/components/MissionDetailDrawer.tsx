@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchArtifacts } from '../api/client';
 import type { AgentMission } from '../api/client';
@@ -19,6 +19,16 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
     enabled: mission !== null && mission.status !== 'PENDING_APPROVAL',
     refetchInterval: 4000,
   });
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!mission) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [mission, onClose]);
 
   if (!mission) return null;
 
