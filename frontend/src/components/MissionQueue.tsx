@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMissions } from '../hooks/usePolling';
 import { approveMission } from '../api/client';
@@ -22,6 +22,13 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
     mutationFn: approveMission,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
   });
+
+  // Force re-render every second so relative timestamps tick live
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(k => k + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const pendingCount = missions.filter(m => m.status === 'PENDING_APPROVAL').length;
 
