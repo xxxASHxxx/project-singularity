@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMissions } from './hooks/usePolling';
 import TopBar from './components/TopBar';
 import TelemetryPanel from './components/TelemetryPanel';
@@ -12,8 +12,48 @@ export default function App() {
   const { data: missions = [], isError } = useMissions();
   const [selectedMission, setSelectedMission] = useState<AgentMission | null>(null);
 
+  // Track API offline state for connection-lost banner with exit animation
+  const [showBanner, setShowBanner] = useState(false);
+  const [bannerExiting, setBannerExiting] = useState(false);
+  const wasError = useRef(false);
+
+  useEffect(() => {
+    if (isError && !wasError.current) {
+      setShowBanner(true);
+      setBannerExiting(false);
+    } else if (!isError && wasError.current) {
+      setBannerExiting(true);
+      setTimeout(() => { setShowBanner(false); setBannerExiting(false); }, 350);
+    }
+    wasError.current = isError;
+  }, [isError]);
+
   return (
     <div className="min-h-screen" style={{ background: '#0A0A0B' }}>
+      {/* Connection-lost banner */}
+      {showBanner && (
+        <div
+          className={`${bannerExiting ? 'connection-banner-exit' : 'connection-banner'}`}
+          style={{
+            background: 'linear-gradient(90deg, rgba(255,59,48,0.15) 0%, rgba(255,59,48,0.25) 50%, rgba(255,59,48,0.15) 100%)',
+            borderBottom: '1px solid rgba(255,59,48,0.3)',
+            padding: '8px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+        >
+          <span style={{ color: '#FF3B30', fontSize: 13, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.05em' }}>
+            ⚠ CONNECTION LOST
+          </span>
+          <span style={{ color: '#666', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}>
+            — Retrying automatically…
+          </span>
+          <span className="inline-block w-2 h-2 rounded-full bg-red-accent" style={{ animation: 'pulse-glow 1.5s ease-in-out infinite' }} />
+        </div>
+      )}
+
       <TopBar apiOk={!isError} />
 
       <div className="p-4 lg:p-6">

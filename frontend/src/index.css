@@ -80,3 +80,19 @@ body { scrollbar-width: thin; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0A0A0B; }
 ::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }
+
+/* Connection-lost banner */
+@keyframes banner-slide-in {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes banner-slide-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-100%); opacity: 0; }
+}
+.connection-banner {
+  animation: banner-slide-in 0.35s ease-out forwards;
+}
+.connection-banner-exit {
+  animation: banner-slide-out 0.35s ease-in forwards;
+}
