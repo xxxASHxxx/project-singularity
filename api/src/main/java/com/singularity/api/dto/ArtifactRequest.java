@@ -5,7 +5,8 @@ import lombok.Data;
 
 @Data
 public class ArtifactRequest {
-    @NotBlank
+    @NotBlank(message = "Artifact type is required")
+    @Size(max = 64, message = "Artifact type is too long")
     private String artifactType;  // SCREENSHOT, RECORDING_URL, PLAN_MD, LOG
 
     @NotBlank
