@@ -47,7 +47,7 @@ export default function App() {
           }}
         >
           <span style={{ color: '#FF3B30', fontSize: 13, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.05em' }}>
-            ⚠ CONNECTION LOST
+            ⚠ API CONNECTION LOST
           </span>
           <span style={{ color: '#666', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}>
             — Retrying automatically…
