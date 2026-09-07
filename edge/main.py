@@ -213,8 +213,10 @@ def main():
     log.info(f"API URL: {args.api_url}")
 
     if args.mock:
+        log.info("Starting edge node in MOCK mode")
         run_mock(args, cfg)
     else:
+        log.info("Starting edge node in LIVE mode")
         run_live(args, cfg)
 
 
