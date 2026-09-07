@@ -28,7 +28,7 @@ export default function App() {
     wasError.current = isError;
   }, [isError]);
 
-  const pendingCount = missions.filter(m => m.status === 'PENDING_APPROVAL').length;
+  const pendingCount = (missions || []).filter(m => m.status === 'PENDING_APPROVAL').length;
 
   return (
     <div className="min-h-screen" style={{ background: '#0A0A0B' }}>
