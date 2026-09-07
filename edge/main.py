@@ -54,7 +54,11 @@ def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3) 
             r = requests.post(url, json=payload, timeout=5)
             r.raise_for_status()
             log.info(f"POST {url} → {r.status_code}")
-            return r.json()
+            try:
+                return r.json()
+            except ValueError:
+                log.warning("Response was not valid JSON")
+                return {}
         except requests.RequestException as e:
             wait = 2 ** attempt
             log.warning(f"POST failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {wait}s")
