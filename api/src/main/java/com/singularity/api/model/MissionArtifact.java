@@ -25,6 +25,9 @@ public class MissionArtifact {
     @Column(name = "storage_path", nullable = false, columnDefinition = "TEXT")
     private String storagePath;
 
+    @Column(name = "file_size_bytes")
+    private Long fileSizeBytes;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
