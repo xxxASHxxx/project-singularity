@@ -47,5 +47,6 @@ def get_mock_sequence(device_id: str = "edge-node-01") -> Iterator[Dict[str, Any
             "shelfFillRatio": fill,
             "surgeFlag": surge_flag,
             "lowStockFlag": low_stock_flag,
+            "cycleCount": idx // len(MOCK_SEQUENCE),
         }
         idx += 1
