@@ -43,7 +43,11 @@ export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pe
                style={{ boxShadow: apiOk ? '0 0 6px #22C55E' : '0 0 6px #FF3B30' }} />
           <span className="text-xs font-mono text-gray-500">{apiOk ? 'API ONLINE' : 'API OFFLINE'}</span>
         </div>
-        <span className="font-mono text-xs text-gray-500">{time.toLocaleTimeString('en-US', { hour12: false })}</span>
+        <span className="font-mono text-xs text-gray-500">
+          {time.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
+          {' · '}
+          {time.toLocaleTimeString('en-US', { hour12: false })}
+        </span>
       </div>
     </div>
   );
