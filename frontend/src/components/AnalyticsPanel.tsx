@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchAnalytics, type AnalyticsSnapshot } from '../api/client';
+import { useAnalytics } from '../hooks/usePolling';
+import type { AnalyticsSnapshot } from '../api/client';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,12 +79,7 @@ function MiniBar({ label, count, total, color }: MiniBarProps) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function AnalyticsPanel() {
-  const { data, isLoading, isError } = useQuery<AnalyticsSnapshot>({
-    queryKey: ['analytics'],
-    queryFn: fetchAnalytics,
-    refetchInterval: 10_000,   // matches server Cache-Control max-age
-    staleTime: 8_000,
-  });
+  const { data, isLoading, isError } = useAnalytics();
 
   if (isLoading) {
     return (
