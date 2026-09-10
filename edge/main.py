@@ -36,6 +36,10 @@ CONFIG_PATH = ROOT / 'config' / 'zones.json'
 
 
 def load_config() -> Dict[str, Any]:
+    if not CONFIG_PATH.exists():
+        log.error(f"Config file not found: {CONFIG_PATH}")
+        log.error("Copy config/zones.json.example or create config/zones.json — see README.md")
+        sys.exit(1)
     with open(CONFIG_PATH) as f:
         return json.load(f)
 
