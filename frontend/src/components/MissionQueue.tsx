@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMissions } from '../hooks/usePolling';
-import { approveMission } from '../api/client';
+import { approveMission, rejectMission } from '../api/client';
 import StatusPill from './StatusPill';
 import type { AgentMission } from '../api/client';
 
@@ -20,6 +20,11 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
 
   const approve = useMutation({
     mutationFn: approveMission,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
+  });
+
+  const reject = useMutation({
+    mutationFn: rejectMission,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
   });
 
@@ -78,21 +83,38 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
               </div>
 
               {mission.status === 'PENDING_APPROVAL' && (
-                <button
-                  id={`approve-btn-${mission.id}`}
-                  className="px-3 py-1.5 text-xs font-mono font-semibold rounded border transition-all shrink-0"
-                  style={{
-                    background: 'rgba(34,197,94,0.1)',
-                    color: '#22C55E',
-                    border: '1px solid rgba(34,197,94,0.3)',
-                  }}
-                  onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(34,197,94,0.2)'; }}
-                  onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(34,197,94,0.1)'; }}
-                  onClick={e => { e.stopPropagation(); approve.mutate(mission.id); }}
-                  disabled={approve.isPending}
-                >
-                  ✓ APPROVE
-                </button>
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    id={`approve-btn-${mission.id}`}
+                    className="px-3 py-1.5 text-xs font-mono font-semibold rounded border transition-all"
+                    style={{
+                      background: 'rgba(34,197,94,0.1)',
+                      color: '#22C55E',
+                      border: '1px solid rgba(34,197,94,0.3)',
+                    }}
+                    onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(34,197,94,0.2)'; }}
+                    onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(34,197,94,0.1)'; }}
+                    onClick={e => { e.stopPropagation(); approve.mutate(mission.id); }}
+                    disabled={approve.isPending}
+                  >
+                    ✓
+                  </button>
+                  <button
+                    id={`reject-btn-${mission.id}`}
+                    className="px-3 py-1.5 text-xs font-mono font-semibold rounded border transition-all"
+                    style={{
+                      background: 'rgba(255,59,48,0.1)',
+                      color: '#FF3B30',
+                      border: '1px solid rgba(255,59,48,0.3)',
+                    }}
+                    onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(255,59,48,0.2)'; }}
+                    onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(255,59,48,0.1)'; }}
+                    onClick={e => { e.stopPropagation(); reject.mutate(mission.id); }}
+                    disabled={reject.isPending}
+                  >
+                    ✕
+                  </button>
+                </div>
               )}
             </div>
           ))}
