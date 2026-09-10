@@ -51,13 +51,14 @@ FAILED_LOG = Path(__file__).parent / 'logs' / 'failed_payloads.jsonl'
 FAILED_LOG.parent.mkdir(exist_ok=True)
 
 
-def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3) -> Optional[Dict]:
+def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3, timeout: int = 5) -> Optional[Dict]:
     url = f"{api_url}/api/v1/telemetry"
+    payload_size = len(json.dumps(payload))
     for attempt in range(max_retries):
         try:
-            r = requests.post(url, json=payload, timeout=5)
+            r = requests.post(url, json=payload, timeout=timeout)
             r.raise_for_status()
-            log.info(f"POST {url} → {r.status_code}")
+            log.info(f"POST {url} → {r.status_code} ({payload_size} bytes)")
             try:
                 return r.json()
             except ValueError:
