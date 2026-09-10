@@ -38,6 +38,9 @@ export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pe
         </div>
       </div>
       <div className="flex items-center gap-4">
+        <span className="text-xs text-gray-700 font-mono hidden lg:inline" title="Press Esc to close mission drawer">
+          ⌨ ESC to close
+        </span>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${apiOk ? 'bg-green-accent' : 'bg-red-accent'}`}
                style={{ boxShadow: apiOk ? '0 0 6px #22C55E' : '0 0 6px #FF3B30' }} />
@@ -48,6 +51,7 @@ export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pe
           {' · '}
           {time.toLocaleTimeString('en-US', { hour12: false })}
         </span>
+        <span className="font-mono text-xs text-gray-700" title="Version">v0.3.0</span>
       </div>
     </div>
   );
