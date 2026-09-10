@@ -12,6 +12,14 @@ export default function App() {
   const { data: missions = [], isError } = useMissions();
   const [selectedMission, setSelectedMission] = useState<AgentMission | null>(null);
 
+  // Session uptime
+  const [sessionStart] = useState(() => Date.now());
+  const [, setUptimeTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setUptimeTick(k => k + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   // Track API offline state for connection-lost banner with exit animation
   const [showBanner, setShowBanner] = useState(false);
   const [bannerExiting, setBannerExiting] = useState(false);
@@ -84,7 +92,18 @@ export default function App() {
 
             {/* System status */}
             <div className="panel p-5">
-              <p className="section-title">System Status</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="section-title mb-0">System Status</p>
+                <span className="text-xs font-mono text-gray-600" title="Session uptime">
+                  ▲ {(() => {
+                    const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+                    const h = Math.floor(elapsed / 3600);
+                    const m = Math.floor((elapsed % 3600) / 60);
+                    const s = elapsed % 60;
+                    return h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+                  })()}
+                </span>
+              </div>
               <div className="space-y-3">
                 {[
                   { label: 'Edge Node', status: 'STREAMING' },
