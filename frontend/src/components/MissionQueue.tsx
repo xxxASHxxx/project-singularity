@@ -86,6 +86,7 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
                 <div className="flex gap-1.5 shrink-0">
                   <button
                     id={`approve-btn-${mission.id}`}
+                    title="Approve mission"
                     className="px-3 py-1.5 text-xs font-mono font-semibold rounded border transition-all"
                     style={{
                       background: 'rgba(34,197,94,0.1)',
@@ -101,6 +102,7 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
                   </button>
                   <button
                     id={`reject-btn-${mission.id}`}
+                    title="Reject mission"
                     className="px-3 py-1.5 text-xs font-mono font-semibold rounded border transition-all"
                     style={{
                       background: 'rgba(255,59,48,0.1)',

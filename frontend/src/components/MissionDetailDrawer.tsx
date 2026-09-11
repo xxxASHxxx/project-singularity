@@ -12,6 +12,15 @@ const TYPE_ICON: Record<string, string> = {
   LOG: '📄',
 };
 
+function formatDuration(startedAt: string | null, completedAt: string | null): string | null {
+  if (!startedAt || !completedAt) return null;
+  const sec = Math.max(0, Math.round((new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 1000));
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}m ${s}s`;
+}
+
 export default function MissionDetailDrawer({ mission, onClose }: { mission: AgentMission | null; onClose: () => void }) {
   const { data: artifacts = [] } = useQuery({
     queryKey: ['artifacts', mission?.id],
@@ -74,6 +83,12 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
               <div>
                 <p className="text-gray-600 mb-0.5">Completed</p>
                 <p className="text-gray-300">{new Date(mission.completedAt).toLocaleTimeString()}</p>
+              </div>
+            )}
+            {formatDuration(mission.startedAt, mission.completedAt) && (
+              <div>
+                <p className="text-gray-600 mb-0.5">Duration</p>
+                <p className="text-gray-300">{formatDuration(mission.startedAt, mission.completedAt)}</p>
               </div>
             )}
           </div>
