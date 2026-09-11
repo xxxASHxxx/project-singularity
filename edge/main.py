@@ -120,6 +120,7 @@ def run_live(args, cfg: Dict[str, Any]):
     low_stock_threshold = cfg.get('low_stock_threshold', 20)
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
+    timeout = cfg.get('http_timeout', 5)
 
     person_detector = PersonDetector()
     shelf_detector = ShelfDetector(reference_frame, shelf_roi)
@@ -160,7 +161,7 @@ def run_live(args, cfg: Dict[str, Any]):
                     'lowStockFlag': low_stock_flag,
                 }
                 log.info(f"Telemetry: occupancy={occupancy} fill={fill_ratio:.1f}% surge={surge_flag} low_stock={low_stock_flag}")
-                post_telemetry(payload, args.api_url)
+                post_telemetry(payload, args.api_url, timeout=timeout)
                 last_post = now
 
             # Show preview
@@ -185,6 +186,7 @@ def run_mock(args, cfg: Dict[str, Any]):
     from mock_data import get_mock_sequence
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
+    timeout = cfg.get('http_timeout', 5)
     sequence = get_mock_sequence(device_id)
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
@@ -196,7 +198,7 @@ def run_mock(args, cfg: Dict[str, Any]):
             f"fill={payload['shelfFillRatio']}% "
             f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
         )
-        post_telemetry(payload, args.api_url)
+        post_telemetry(payload, args.api_url, timeout=timeout)
         time.sleep(interval)
 
 
@@ -217,12 +219,15 @@ def main():
 
     log.info(f"API URL: {args.api_url}")
 
-    if args.mock:
-        log.info("Starting edge node in MOCK mode")
-        run_mock(args, cfg)
-    else:
-        log.info("Starting edge node in LIVE mode")
-        run_live(args, cfg)
+    try:
+        if args.mock:
+            log.info("Starting edge node in MOCK mode")
+            run_mock(args, cfg)
+        else:
+            log.info("Starting edge node in LIVE mode")
+            run_live(args, cfg)
+    except KeyboardInterrupt:
+        log.info("Edge node stopped by operator")
 
 
 if __name__ == '__main__':
