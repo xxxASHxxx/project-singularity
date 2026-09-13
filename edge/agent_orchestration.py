@@ -54,11 +54,17 @@ def api_post(path: str, body: dict):
     return r.json()
 
 
-def post_artifact(mission_id: int, artifact_type: str, storage_path: str):
-    api_post(f"/api/v1/missions/{mission_id}/artifacts", {
+def post_artifact(mission_id: int, artifact_type: str, storage_path: str, file_size_bytes: int = None):
+    if file_size_bytes is None and storage_path:
+        file_size_bytes = len(storage_path.encode('utf-8'))
+    body = {
         "artifactType": artifact_type,
         "storagePath": storage_path,
-    })
+    }
+    if file_size_bytes is not None:
+        body["fileSizeBytes"] = file_size_bytes
+    api_post(f"/api/v1/missions/{mission_id}/artifacts", body)
+
 
 
 def set_status(mission_id: int, status: str, summary: str = None):

@@ -61,6 +61,7 @@ public class MissionService {
         artifact.setMissionId(missionId);
         artifact.setArtifactType(MissionArtifact.ArtifactType.valueOf(req.getArtifactType()));
         artifact.setStoragePath(req.getStoragePath());
+        artifact.setFileSizeBytes(req.getFileSizeBytes());
         return artifactRepo.save(artifact);
     }
 

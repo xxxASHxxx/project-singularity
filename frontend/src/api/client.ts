@@ -34,6 +34,7 @@ export interface MissionArtifact {
   missionId: number;
   artifactType: 'SCREENSHOT' | 'RECORDING_URL' | 'PLAN_MD' | 'LOG';
   storagePath: string;
+  fileSizeBytes?: number | null;
   createdAt: string;
 }
 

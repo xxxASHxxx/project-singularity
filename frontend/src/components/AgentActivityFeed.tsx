@@ -11,6 +11,14 @@ const TYPE_ICON: Record<string, string> = {
   LOG: '📄',
 };
 
+function formatBytes(bytes?: number | null): string | null {
+  if (bytes === null || bytes === undefined || bytes <= 0) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
   const [expanded, setExpanded] = useState(false);
   const icon = TYPE_ICON[artifact.artifactType] ?? '📁';
@@ -23,6 +31,9 @@ function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-xs font-mono text-gray-400">{artifact.artifactType}</span>
             <span className="text-xs text-gray-600">mission #{artifact.missionId}</span>
+            {formatBytes(artifact.fileSizeBytes) && (
+              <span className="text-xs font-mono text-gray-500">· {formatBytes(artifact.fileSizeBytes)}</span>
+            )}
           </div>
           <p className="text-xs font-mono text-gray-500 truncate">{artifact.storagePath}</p>
         </div>

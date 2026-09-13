@@ -12,4 +12,7 @@ public class ArtifactRequest {
     @NotBlank
     @Size(max = 16384)
     private String storagePath;
+
+    @PositiveOrZero(message = "File size cannot be negative")
+    private Long fileSizeBytes;
 }

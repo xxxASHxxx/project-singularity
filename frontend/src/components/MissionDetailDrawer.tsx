@@ -20,6 +20,14 @@ function formatDuration(startedAt: string | null, completedAt: string | null): s
   return `${m}m ${s}s`;
 }
 
+function formatBytes(bytes?: number | null): string | null {
+  if (bytes === null || bytes === undefined || bytes <= 0) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 export default function MissionDetailDrawer({ mission, onClose }: { mission: AgentMission | null; onClose: () => void }) {
   const { data: artifacts = [] } = useMissionArtifacts(mission?.id, mission?.status);
 
@@ -117,6 +125,11 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
                       <div className="flex items-center gap-2 mb-2">
                         <span>{TYPE_ICON[artifact.artifactType] ?? '📁'}</span>
                         <span className="text-xs font-mono text-gray-400">{artifact.artifactType}</span>
+                        {formatBytes(artifact.fileSizeBytes) && (
+                          <span className="text-xs font-mono text-gray-500">
+                            ({formatBytes(artifact.fileSizeBytes)})
+                          </span>
+                        )}
                         <span className="text-xs text-gray-600 ml-auto">{new Date(artifact.createdAt).toLocaleTimeString()}</span>
                       </div>
                       {artifact.artifactType === 'PLAN_MD' ? (
