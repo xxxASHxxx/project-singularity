@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchArtifacts } from '../api/client';
+import React, { useState } from 'react';
+import { useMissionArtifacts } from '../hooks/usePolling';
 import type { AgentMission, MissionArtifact } from '../api/client';
 import ReactMarkdown from 'react-markdown';
+
 
 const TYPE_ICON: Record<string, string> = {
   SCREENSHOT: '🖼️',
@@ -51,12 +51,7 @@ function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
 }
 
 function MissionArtifactGroup({ mission }: { mission: AgentMission }) {
-  const { data: artifacts = [] } = useQuery({
-    queryKey: ['artifacts', mission.id],
-    queryFn: () => fetchArtifacts(mission.id),
-    refetchInterval: 5000,
-    enabled: mission.status !== 'PENDING_APPROVAL',
-  });
+  const { data: artifacts = [] } = useMissionArtifacts(mission.id, mission.status);
 
   if (artifacts.length === 0) return null;
 

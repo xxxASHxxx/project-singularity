@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTelemetry, fetchMissions, fetchProducts, fetchAnalytics } from '../api/client';
-import type { AnalyticsSnapshot } from '../api/client';
+import { fetchTelemetry, fetchMissions, fetchProducts, fetchAnalytics, fetchArtifacts } from '../api/client';
+import type { AnalyticsSnapshot, MissionArtifact } from '../api/client';
 
 const POLL_INTERVAL = 4000;
 
@@ -36,3 +36,14 @@ export function useAnalytics() {
     staleTime: 8_000,
   });
 }
+
+export function useMissionArtifacts(missionId?: number | null, status?: string | null) {
+  const isTerminal = status === 'COMPLETED' || status === 'FAILED';
+  return useQuery<MissionArtifact[]>({
+    queryKey: ['artifacts', missionId],
+    queryFn: () => fetchArtifacts(missionId!),
+    enabled: missionId !== undefined && missionId !== null && status !== 'PENDING_APPROVAL',
+    refetchInterval: isTerminal ? false : POLL_INTERVAL,
+  });
+}
+

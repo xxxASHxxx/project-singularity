@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchArtifacts } from '../api/client';
+import { useMissionArtifacts } from '../hooks/usePolling';
 import type { AgentMission } from '../api/client';
 import StatusPill from './StatusPill';
 import ReactMarkdown from 'react-markdown';
@@ -22,12 +21,8 @@ function formatDuration(startedAt: string | null, completedAt: string | null): s
 }
 
 export default function MissionDetailDrawer({ mission, onClose }: { mission: AgentMission | null; onClose: () => void }) {
-  const { data: artifacts = [] } = useQuery({
-    queryKey: ['artifacts', mission?.id],
-    queryFn: () => fetchArtifacts(mission!.id),
-    enabled: mission !== null && mission.status !== 'PENDING_APPROVAL',
-    refetchInterval: 4000,
-  });
+  const { data: artifacts = [] } = useMissionArtifacts(mission?.id, mission?.status);
+
 
   // Close on Escape key
   useEffect(() => {
