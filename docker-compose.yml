@@ -79,6 +79,15 @@ services:
     networks:
       - singularity
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -92,6 +101,16 @@ services:
     networks:
       - singularity
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 
 volumes:
   mysql_data:
