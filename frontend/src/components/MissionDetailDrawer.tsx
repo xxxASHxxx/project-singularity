@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMissionArtifacts } from '../hooks/usePolling';
-import type { AgentMission } from '../api/client';
+import type { AgentMission, MissionArtifact } from '../api/client';
 import StatusPill from './StatusPill';
 import ReactMarkdown from 'react-markdown';
 
@@ -30,7 +30,8 @@ function formatBytes(bytes?: number | null): string | null {
 
 export default function MissionDetailDrawer({ mission, onClose }: { mission: AgentMission | null; onClose: () => void }) {
   const { data: artifacts = [] } = useMissionArtifacts(mission?.id, mission?.status);
-
+  const [copiedSummary, setCopiedSummary] = useState(false);
+  const [copiedArtifactId, setCopiedArtifactId] = useState<number | null>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -43,6 +44,38 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
   }, [mission, onClose]);
 
   if (!mission) return null;
+
+  const handleCopySummary = async () => {
+    const text = [
+      `Project Singularity - Mission #${mission.id}`,
+      `Type: ${mission.missionType}`,
+      `Status: ${mission.status}`,
+      `Trigger Event: #${mission.triggeredByEventId}`,
+      `Created: ${new Date(mission.createdAt).toLocaleString()}`,
+      mission.startedAt ? `Started: ${new Date(mission.startedAt).toLocaleString()}` : null,
+      mission.completedAt ? `Completed: ${new Date(mission.completedAt).toLocaleString()}` : null,
+      formatDuration(mission.startedAt, mission.completedAt) ? `Duration: ${formatDuration(mission.startedAt, mission.completedAt)}` : null,
+      mission.summary ? `\nSummary:\n${mission.summary}` : null,
+    ].filter(Boolean).join('\n');
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSummary(true);
+      setTimeout(() => setCopiedSummary(false), 2000);
+    } catch (err) {
+      console.warn('Failed to copy summary', err);
+    }
+  };
+
+  const handleCopyArtifact = async (artifact: MissionArtifact) => {
+    try {
+      await navigator.clipboard.writeText(artifact.storagePath);
+      setCopiedArtifactId(artifact.id);
+      setTimeout(() => setCopiedArtifactId(null), 2000);
+    } catch (err) {
+      console.warn('Failed to copy artifact', err);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
@@ -62,7 +95,23 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
               {mission.missionType} MISSION
             </span>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-xl">×</button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopySummary}
+              title="Copy mission summary to clipboard"
+              className="px-2.5 py-1 text-xs font-mono rounded border transition-colors flex items-center gap-1.5"
+              style={{
+                background: copiedSummary ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
+                borderColor: copiedSummary ? 'rgba(34,197,94,0.4)' : '#262626',
+                color: copiedSummary ? '#22C55E' : '#9CA3AF',
+              }}
+            >
+              <span>{copiedSummary ? '✓' : '📋'}</span>
+              <span>{copiedSummary ? 'Copied' : 'Copy Info'}</span>
+            </button>
+            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-xl p-1 leading-none">×</button>
+          </div>
         </div>
 
         {/* Meta */}
@@ -131,13 +180,56 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
                           </span>
                         )}
                         <span className="text-xs text-gray-600 ml-auto">{new Date(artifact.createdAt).toLocaleTimeString()}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyArtifact(artifact)}
+                          title="Copy artifact path"
+                          className="text-xs text-gray-500 hover:text-gray-300 p-0.5 rounded transition-colors font-mono"
+                        >
+                          {copiedArtifactId === artifact.id ? (
+                            <span className="text-green-500 text-[10px]">✓ copied</span>
+                          ) : (
+                            <span className="text-[11px]">⧉</span>
+                          )}
+                        </button>
                       </div>
+
                       {artifact.artifactType === 'PLAN_MD' ? (
-                        <div className="text-xs text-gray-400 leading-relaxed">
+                        <div className="text-xs text-gray-400 leading-relaxed prose prose-invert prose-sm max-w-none">
                           <ReactMarkdown>{artifact.storagePath}</ReactMarkdown>
                         </div>
                       ) : artifact.artifactType === 'SCREENSHOT' ? (
-                        <img src={artifact.storagePath} alt="Screenshot" className="max-w-full rounded" style={{ maxHeight: 180 }} />
+                        artifact.storagePath.startsWith('http') || artifact.storagePath.startsWith('data:') ? (
+                          <img src={artifact.storagePath} alt="Screenshot" className="max-w-full rounded border border-border" style={{ maxHeight: 180 }} />
+                        ) : (
+                          <p className="text-xs font-mono text-gray-400 break-all">{artifact.storagePath}</p>
+                        )
+                      ) : artifact.artifactType === 'RECORDING_URL' ? (
+                        <div className="space-y-1.5">
+                          {artifact.storagePath.startsWith('http://') || artifact.storagePath.startsWith('https://') ? (
+                            <a
+                              href={artifact.storagePath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-medium border transition-colors"
+                              style={{
+                                background: 'rgba(255,138,0,0.1)',
+                                borderColor: 'rgba(255,138,0,0.3)',
+                                color: '#FF8A00',
+                              }}
+                            >
+                              <span>▶</span>
+                              <span>Open Recording</span>
+                              <span className="text-[10px] text-gray-500">↗</span>
+                            </a>
+                          ) : (
+                            <p className="text-xs font-mono text-gray-400 break-all">{artifact.storagePath}</p>
+                          )}
+                        </div>
+                      ) : artifact.artifactType === 'LOG' ? (
+                        <pre className="text-xs font-mono text-gray-300 bg-black/40 p-2.5 rounded border border-border overflow-x-auto whitespace-pre-wrap break-all max-h-40">
+                          {artifact.storagePath}
+                        </pre>
                       ) : (
                         <p className="text-xs font-mono text-gray-500 break-all">{artifact.storagePath}</p>
                       )}
@@ -152,3 +244,4 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
     </div>
   );
 }
+
