@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMissions } from '../hooks/usePolling';
 import { approveMission, rejectMission } from '../api/client';
 import StatusPill from './StatusPill';
 import type { AgentMission } from '../api/client';
+
+type FilterTab = 'ALL' | 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
 function formatRelative(ts: string) {
   const diff = Date.now() - new Date(ts).getTime();
@@ -17,6 +19,9 @@ function formatRelative(ts: string) {
 export default function MissionQueue({ onSelectMission }: { onSelectMission: (m: AgentMission) => void }) {
   const { data: missions = [] } = useMissions();
   const qc = useQueryClient();
+
+  const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const approve = useMutation({
     mutationFn: approveMission,
@@ -35,18 +40,128 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
     return () => clearInterval(t);
   }, []);
 
-  const pendingCount = missions.filter(m => m.status === 'PENDING_APPROVAL').length;
+  const counts = useMemo(() => {
+    const pending = missions.filter(m => m.status === 'PENDING_APPROVAL').length;
+    const running = missions.filter(m => m.status === 'RUNNING' || m.status === 'APPROVED').length;
+    const completed = missions.filter(m => m.status === 'COMPLETED').length;
+    const failed = missions.filter(m => m.status === 'FAILED').length;
+    return {
+      all: missions.length,
+      pending,
+      running,
+      completed,
+      failed,
+    };
+  }, [missions]);
+
+  const filteredMissions = useMemo(() => {
+    return missions.filter(mission => {
+      // Status filter
+      if (filterTab === 'PENDING' && mission.status !== 'PENDING_APPROVAL') return false;
+      if (filterTab === 'RUNNING' && mission.status !== 'RUNNING' && mission.status !== 'APPROVED') return false;
+      if (filterTab === 'COMPLETED' && mission.status !== 'COMPLETED') return false;
+      if (filterTab === 'FAILED' && mission.status !== 'FAILED') return false;
+
+      // Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesId = mission.id.toString().includes(q) || `#${mission.id}`.includes(q);
+        const matchesEvent = mission.triggeredByEventId.toString().includes(q);
+        const matchesType = mission.missionType.toLowerCase().includes(q);
+        const matchesStatus = mission.status.toLowerCase().includes(q);
+        const matchesSummary = (mission.summary || '').toLowerCase().includes(q);
+        if (!matchesId && !matchesEvent && !matchesType && !matchesStatus && !matchesSummary) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [missions, filterTab, searchQuery]);
+
+  const tabs: { key: FilterTab; label: string; count: number; accent?: string }[] = [
+    { key: 'ALL', label: 'All', count: counts.all },
+    { key: 'PENDING', label: 'Pending', count: counts.pending, accent: counts.pending > 0 ? '#FF8A00' : undefined },
+    { key: 'RUNNING', label: 'Running', count: counts.running, accent: counts.running > 0 ? '#FF3B30' : undefined },
+    { key: 'COMPLETED', label: 'Done', count: counts.completed },
+  ];
+
+  if (counts.failed > 0) {
+    tabs.push({ key: 'FAILED', label: 'Failed', count: counts.failed, accent: '#B3261E' });
+  }
 
   return (
     <div className="panel p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <p className="section-title mb-0">Mission Queue</p>
-        {pendingCount > 0 && (
+        {counts.pending > 0 && (
           <span className="text-xs font-mono px-2 py-0.5 rounded bg-amber-accent/10 text-amber-accent border border-amber-accent/30">
-            {pendingCount} PENDING
+            {counts.pending} PENDING
           </span>
         )}
       </div>
+
+      {missions.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {/* Quick search input */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by ID, type, or event…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape' && searchQuery) {
+                  e.stopPropagation();
+                  setSearchQuery('');
+                }
+              }}
+              className="w-full text-xs font-mono bg-black/40 border border-border rounded px-3 py-1.5 pl-7 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-500 transition-colors"
+            />
+            <span className="absolute left-2.5 top-1.5 text-xs text-gray-600 select-none">/</span>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1.5 text-xs text-gray-500 hover:text-gray-300"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Status filter tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none text-xs font-mono">
+            {tabs.map(tab => {
+              const active = filterTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFilterTab(tab.key)}
+                  className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                    active
+                      ? 'bg-white/10 text-white font-medium border border-white/20'
+                      : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className="text-[10px] px-1 rounded"
+                    style={{
+                      color: tab.accent ? tab.accent : active ? '#E5E7EB' : '#6B7280',
+                      background: tab.accent && tab.count > 0 ? `${tab.accent}20` : undefined,
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {missions.length === 0 ? (
         <div className="text-center py-10">
@@ -59,9 +174,23 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
           <p className="font-mono text-sm text-gray-600 mb-1">No missions yet</p>
           <p className="text-xs text-gray-700">Waiting for edge telemetry to trigger events…</p>
         </div>
+      ) : filteredMissions.length === 0 ? (
+        <div className="text-center py-8 text-xs text-gray-500 font-mono">
+          <p className="mb-2">No missions matching current filter</p>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterTab('ALL');
+              setSearchQuery('');
+            }}
+            className="text-amber-accent hover:underline text-[11px]"
+          >
+            Clear filters ({counts.all} total)
+          </button>
+        </div>
       ) : (
         <div className="space-y-2 max-h-80 overflow-y-auto">
-          {missions.map(mission => (
+          {filteredMissions.map(mission => (
             <div
               key={mission.id}
               id={`mission-${mission.id}`}
@@ -125,3 +254,4 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
     </div>
   );
 }
+
