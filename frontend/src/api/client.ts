@@ -56,6 +56,9 @@ export const fetchMissions = () =>
 export const approveMission = (id: number) =>
   api.patch<AgentMission>(`/api/v1/missions/${id}/approve`).then(r => r.data);
 
+export const approveAllMissions = (ids: number[]) =>
+  Promise.all(ids.map(id => approveMission(id)));
+
 export const rejectMission = (id: number) =>
   api.patch<AgentMission>(`/api/v1/missions/${id}/status`, { status: 'FAILED', summary: 'Rejected by operator' }).then(r => r.data);
 

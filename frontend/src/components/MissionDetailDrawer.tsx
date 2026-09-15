@@ -77,6 +77,25 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
     }
   };
 
+  const handleExportDossier = () => {
+    const dossier = {
+      mission,
+      duration: formatDuration(mission.startedAt, mission.completedAt),
+      artifacts,
+      exportedAt: new Date().toISOString(),
+    };
+    const jsonStr = JSON.stringify(dossier, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `singularity-mission-${mission.id}-dossier.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
       <div
@@ -96,6 +115,20 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportDossier}
+              title="Download mission dossier JSON"
+              className="px-2.5 py-1 text-xs font-mono rounded border transition-colors flex items-center gap-1.5"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                borderColor: '#262626',
+                color: '#9CA3AF',
+              }}
+            >
+              <span>↓</span>
+              <span>Dossier</span>
+            </button>
             <button
               type="button"
               onClick={handleCopySummary}
@@ -239,6 +272,19 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
               ))}
             </div>
           )}
+        </div>
+
+        {/* Raw Payload Inspector */}
+        <div className="p-5 border-t border-border">
+          <details className="group">
+            <summary className="text-xs font-mono text-gray-500 cursor-pointer hover:text-gray-300 transition-colors flex items-center justify-between select-none">
+              <span>Raw Mission Payload</span>
+              <span className="text-[10px] group-open:rotate-90 transition-transform">▸</span>
+            </summary>
+            <pre className="mt-3 text-[11px] font-mono text-gray-400 bg-black/60 p-3 rounded border border-border overflow-x-auto whitespace-pre">
+              {JSON.stringify({ mission, artifacts }, null, 2)}
+            </pre>
+          </details>
         </div>
       </div>
     </div>

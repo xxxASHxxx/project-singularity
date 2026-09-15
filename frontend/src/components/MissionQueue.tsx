@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMissions } from '../hooks/usePolling';
-import { approveMission, rejectMission } from '../api/client';
+import { approveMission, rejectMission, approveAllMissions } from '../api/client';
 import StatusPill from './StatusPill';
 import type { AgentMission } from '../api/client';
 
 type FilterTab = 'ALL' | 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+type TypeFilter = 'ALL' | 'RESTOCK' | 'REPRICE';
 
 function formatRelative(ts: string) {
   const diff = Date.now() - new Date(ts).getTime();
@@ -21,6 +22,7 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
   const qc = useQueryClient();
 
   const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   const approve = useMutation({
@@ -30,6 +32,14 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
 
   const reject = useMutation({
     mutationFn: rejectMission,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
+  });
+
+  const pendingMissions = useMemo(() => missions.filter(m => m.status === 'PENDING_APPROVAL'), [missions]);
+  const pendingIds = useMemo(() => pendingMissions.map(m => m.id), [pendingMissions]);
+
+  const approveAll = useMutation({
+    mutationFn: () => approveAllMissions(pendingIds),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['missions'] }),
   });
 
@@ -45,12 +55,16 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
     const running = missions.filter(m => m.status === 'RUNNING' || m.status === 'APPROVED').length;
     const completed = missions.filter(m => m.status === 'COMPLETED').length;
     const failed = missions.filter(m => m.status === 'FAILED').length;
+    const restock = missions.filter(m => m.missionType === 'RESTOCK').length;
+    const reprice = missions.filter(m => m.missionType === 'REPRICE').length;
     return {
       all: missions.length,
       pending,
       running,
       completed,
       failed,
+      restock,
+      reprice,
     };
   }, [missions]);
 
@@ -61,6 +75,9 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
       if (filterTab === 'RUNNING' && mission.status !== 'RUNNING' && mission.status !== 'APPROVED') return false;
       if (filterTab === 'COMPLETED' && mission.status !== 'COMPLETED') return false;
       if (filterTab === 'FAILED' && mission.status !== 'FAILED') return false;
+
+      // Type filter
+      if (typeFilter !== 'ALL' && mission.missionType !== typeFilter) return false;
 
       // Text search
       if (searchQuery.trim()) {
@@ -77,7 +94,7 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
 
       return true;
     });
-  }, [missions, filterTab, searchQuery]);
+  }, [missions, filterTab, typeFilter, searchQuery]);
 
   const tabs: { key: FilterTab; label: string; count: number; accent?: string }[] = [
     { key: 'ALL', label: 'All', count: counts.all },
@@ -90,15 +107,63 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
     tabs.push({ key: 'FAILED', label: 'Failed', count: counts.failed, accent: '#B3261E' });
   }
 
+  const handleExportJSON = () => {
+    if (!filteredMissions.length) return;
+    const jsonStr = JSON.stringify(filteredMissions, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `singularity-missions-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="panel p-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="section-title mb-0">Mission Queue</p>
-        {counts.pending > 0 && (
-          <span className="text-xs font-mono px-2 py-0.5 rounded bg-amber-accent/10 text-amber-accent border border-amber-accent/30">
-            {counts.pending} PENDING
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          <p className="section-title mb-0">Mission Queue</p>
+          {counts.pending > 0 && (
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-amber-accent/10 text-amber-accent border border-amber-accent/30">
+              {counts.pending} PENDING
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {pendingIds.length > 1 && (
+            <button
+              type="button"
+              onClick={() => approveAll.mutate()}
+              disabled={approveAll.isPending}
+              className="text-[11px] font-mono px-2 py-0.5 rounded border transition-colors flex items-center gap-1 font-semibold disabled:opacity-50"
+              style={{
+                background: 'rgba(34,197,94,0.15)',
+                borderColor: 'rgba(34,197,94,0.4)',
+                color: '#22C55E',
+              }}
+              title={`Batch approve all ${pendingIds.length} pending missions`}
+            >
+              <span>✓</span>
+              <span>{approveAll.isPending ? 'Approving…' : `Approve All (${pendingIds.length})`}</span>
+            </button>
+          )}
+
+          {missions.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportJSON}
+              className="text-[11px] font-mono px-2 py-0.5 rounded border text-gray-400 hover:text-gray-200 transition-colors"
+              style={{ background: 'rgba(255,255,255,0.03)', borderColor: '#262626' }}
+              title="Download filtered missions as JSON"
+            >
+              ↓ Export
+            </button>
+          )}
+        </div>
       </div>
 
       {missions.length > 0 && (
@@ -156,6 +221,32 @@ export default function MissionQueue({ onSelectMission }: { onSelectMission: (m:
                   >
                     {tab.count}
                   </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Type filter chips */}
+          <div className="flex items-center gap-1.5 pt-0.5 text-[11px] font-mono">
+            <span className="text-gray-600 text-[10px] uppercase tracking-wider mr-1">Type:</span>
+            {(['ALL', 'RESTOCK', 'REPRICE'] as const).map(t => {
+              const active = typeFilter === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-2 py-0.5 rounded border transition-colors ${
+                    active
+                      ? t === 'RESTOCK'
+                        ? 'bg-red-500/20 text-red-400 border-red-500/40 font-semibold'
+                        : t === 'REPRICE'
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 font-semibold'
+                        : 'bg-zinc-800 text-white border-zinc-700 font-semibold'
+                      : 'text-gray-500 hover:text-gray-300 border-transparent hover:border-border'
+                  }`}
+                >
+                  {t === 'ALL' ? 'All Types' : t}
                 </button>
               );
             })}
