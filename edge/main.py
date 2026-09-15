@@ -45,10 +45,68 @@ def load_config() -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# HTTP client
+# HTTP client & Dead-Letter Queue (DLQ) Resilience
 # ---------------------------------------------------------------------------
 FAILED_LOG = Path(__file__).parent / 'logs' / 'failed_payloads.jsonl'
 FAILED_LOG.parent.mkdir(exist_ok=True)
+
+
+def get_failed_payloads_count(log_path: Path = FAILED_LOG) -> int:
+    """Return count of payloads buffered in the dead-letter queue."""
+    if not log_path.exists():
+        return 0
+    count = 0
+    with open(log_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                count += 1
+    return count
+
+
+def replay_failed_payloads(api_url: str, limit: int = 20, timeout: int = 5, log_path: Path = FAILED_LOG) -> int:
+    """Replay buffered failed payloads to the API.
+    
+    Returns count of successfully replayed payloads.
+    Successfully delivered items are purged from the DLQ file.
+    """
+    if not log_path.exists() or log_path.stat().st_size == 0:
+        return 0
+
+    with open(log_path, 'r', encoding='utf-8') as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    if not lines:
+        return 0
+
+    replayed_count = 0
+    remaining_lines = []
+    url = f"{api_url}/api/v1/telemetry"
+
+    for i, line in enumerate(lines):
+        if replayed_count < limit:
+            try:
+                payload = json.loads(line)
+                r = requests.post(url, json=payload, timeout=timeout)
+                r.raise_for_status()
+                replayed_count += 1
+                log.info(f"DLQ replay ({replayed_count}/{limit}) successfully posted to {url}")
+            except Exception as e:
+                log.warning(f"DLQ replay interrupted: {e}. Retaining remaining payloads.")
+                remaining_lines.extend(lines[i:])
+                break
+        else:
+            remaining_lines.append(line)
+
+    # Atomically rewrite remaining failed payloads
+    temp_file = log_path.with_suffix('.tmp')
+    with open(temp_file, 'w', encoding='utf-8') as f:
+        for remaining in remaining_lines:
+            f.write(remaining + '\n')
+    temp_file.replace(log_path)
+
+    if replayed_count > 0:
+        log.info(f"Drained {replayed_count} payloads from DLQ ({len(remaining_lines)} remaining)")
+    return replayed_count
 
 
 def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3, timeout: int = 5) -> Optional[Dict]:
@@ -59,6 +117,14 @@ def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3, 
             r = requests.post(url, json=payload, timeout=timeout)
             r.raise_for_status()
             log.info(f"POST {url} → {r.status_code} ({payload_size} bytes)")
+
+            # Opportunistically drain small batch from DLQ on confirmed connection
+            if FAILED_LOG.exists() and FAILED_LOG.stat().st_size > 0:
+                try:
+                    replay_failed_payloads(api_url, limit=5, timeout=timeout)
+                except Exception as dlq_err:
+                    log.debug(f"Opportunistic DLQ drain deferred: {dlq_err}")
+
             try:
                 return r.json()
             except ValueError:
@@ -71,7 +137,7 @@ def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3, 
                 time.sleep(wait)
     # All retries exhausted — log for later replay
     log.error("All retries failed. Saving payload to failed_payloads.jsonl")
-    with open(FAILED_LOG, 'a') as f:
+    with open(FAILED_LOG, 'a', encoding='utf-8') as f:
         f.write(json.dumps(payload) + '\n')
     return None
 
@@ -211,13 +277,26 @@ def main():
     parser.add_argument('--mock', action='store_true', help='Replay canned mock sequence (no camera)')
     parser.add_argument('--api-url', default=None, help='Spring Boot API base URL')
     parser.add_argument('--headless', action='store_true', help='Do not show preview window')
+    parser.add_argument('--replay-failed', action='store_true', help='Drain and replay all buffered failed payloads to API')
+    parser.add_argument('--dlq-status', action='store_true', help='Display current dead-letter queue count and exit')
     args = parser.parse_args()
+
+    if args.dlq_status:
+        count = get_failed_payloads_count()
+        print(f"Dead-letter queue: {count} buffered payloads in {FAILED_LOG}")
+        return
 
     cfg = load_config()
     if args.api_url is None:
         args.api_url = cfg.get('api_url', 'http://localhost:8080')
 
     log.info(f"API URL: {args.api_url}")
+
+    if args.replay_failed:
+        log.info(f"Explicitly draining DLQ to {args.api_url}...")
+        replayed = replay_failed_payloads(args.api_url, limit=500)
+        log.info(f"DLQ replay complete: {replayed} payloads delivered successfully")
+        return
 
     try:
         if args.mock:
