@@ -288,7 +288,8 @@ def main():
 
     cfg = load_config()
     if args.api_url is None:
-        args.api_url = cfg.get('api_url', 'http://localhost:8080')
+        # Check env var first (set by docker-compose), then config file, then default
+        args.api_url = os.environ.get('API_URL') or cfg.get('api_url', 'http://localhost:8080')
 
     log.info(f"API URL: {args.api_url}")
 
