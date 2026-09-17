@@ -184,7 +184,7 @@ export default function AnalyticsPanel() {
             .map(([status, count]) => (
               <MiniBar
                 key={status}
-                label={status.replace('_', ' ')}
+                label={status.replaceAll('_', ' ')}
                 count={count}
                 total={total}
                 color={STATUS_COLORS[status] ?? '#444'}
