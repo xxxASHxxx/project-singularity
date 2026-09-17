@@ -249,16 +249,21 @@ def run_live(args, cfg: Dict[str, Any]):
 # Mock mode loop
 # ---------------------------------------------------------------------------
 def run_mock(args, cfg: Dict[str, Any]):
-    from mock_data import get_mock_sequence
+    from mock_data import get_mock_sequence, MOCK_SEQUENCE
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
     sequence = get_mock_sequence(device_id)
+    cycle_len = len(MOCK_SEQUENCE)
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
     log.info("Surge will fire at ~t=25s, low-stock at ~t=40s")
+    log.info("Looping indefinitely — Ctrl+C to stop")
 
+    sample_idx = 0
     for payload in sequence:
+        if sample_idx > 0 and sample_idx % cycle_len == 0:
+            log.info(f"[MOCK] Cycle {payload.get('cycleCount', '?')} starting — looping demo sequence")
         log.info(
             f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
             f"fill={payload['shelfFillRatio']}% "
@@ -266,6 +271,7 @@ def run_mock(args, cfg: Dict[str, Any]):
         )
         post_telemetry(payload, args.api_url, timeout=timeout)
         time.sleep(interval)
+        sample_idx += 1
 
 
 # ---------------------------------------------------------------------------
