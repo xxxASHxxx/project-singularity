@@ -1,0 +1,14 @@
+# Ruff linter config for Project Singularity edge node
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+  "E501",  # line too long — handled by line-length above for most cases
+  "F401",  # unused imports — sometimes needed for re-exports
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]  # allow sys.path manipulation before imports in tests
+"mock_data.py" = ["E402"]
