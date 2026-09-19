@@ -39,14 +39,14 @@ services:
     container_name: singularity-api
     environment:
       DB_URL: jdbc:mysql://mysql:3306/singularity?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      DB_USER: singularity
-      DB_PASSWORD: singularity_pass
-      CORS_ALLOWED_ORIGIN: http://localhost:5173
-      AUTO_APPROVE: "false"
-      SURGE_THRESHOLD: "4"
-      LOW_STOCK_THRESHOLD: "20"
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_TSVn4GUskMHl0f}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-9Doe4GPdNwz5qj0xnNjEZbnR}
+      DB_USER: ${DB_USER:-singularity}
+      DB_PASSWORD: ${DB_PASSWORD:-singularity_pass}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      AUTO_APPROVE: "${AUTO_APPROVE:-false}"
+      SURGE_THRESHOLD: "${SURGE_THRESHOLD:-4}"
+      LOW_STOCK_THRESHOLD: "${LOW_STOCK_THRESHOLD:-20}"
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-singularity_secret_123}
     ports:
       - "8080:8080"
