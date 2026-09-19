@@ -30,7 +30,7 @@ frontend/dist/
 *.sqlite
 
 # Docker
-.dockerignore
+# (no Docker files need ignoring — .dockerignore files should be committed)
 
 # IDE
 .idea/
