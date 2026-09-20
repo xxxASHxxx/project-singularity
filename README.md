@@ -113,6 +113,7 @@ project-singularity/
 ├── .env.example           # Environment variable reference
 ├── CONTRIBUTING.md        # How to contribute
 ├── DECISIONS.md           # Architecture decision log
+├── SECURITY.md            # Vulnerability reporting and security design
 └── README.md
 ```
 
