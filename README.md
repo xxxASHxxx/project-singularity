@@ -110,10 +110,13 @@ project-singularity/
 ├── config/                # Shared config (zone ROIs, thresholds)
 ├── pitch/                 # Pitch script, checklist, architecture diagram
 ├── docker-compose.yml     # Full stack orchestration
+├── Makefile               # Developer shortcuts (make dev, make test, etc.)
 ├── .env.example           # Environment variable reference
+├── CHANGELOG.md           # Release history
 ├── CONTRIBUTING.md        # How to contribute
 ├── DECISIONS.md           # Architecture decision log
 ├── SECURITY.md            # Vulnerability reporting and security design
+├── LICENSE                # MIT License
 └── README.md
 ```
 
@@ -140,3 +143,7 @@ This needs native build tools. The Dockerfile handles this automatically, but if
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, code style, and how to make changes.
+
+## License
+
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
