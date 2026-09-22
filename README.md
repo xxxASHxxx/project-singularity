@@ -262,3 +262,66 @@ project-singularity/
 
 <br/>
 
+---
+
+## 🔧 Developer Shortcuts
+
+There's a `Makefile` with everything you'll need day-to-day:
+
+```bash
+make dev            # Start the full stack
+make down           # Stop everything
+make restart        # Stop + start
+make test           # Run all tests (edge + frontend)
+make lint           # Python linting with ruff
+make mock           # Run edge node in mock mode locally
+make logs           # Tail container logs
+make nuke           # ⚠️ Destroy containers + volumes (fresh start)
+make dlq-status     # Check dead-letter queue
+make dlq-replay     # Replay failed telemetry payloads
+```
+
+<br/>
+
+---
+
+## 🐛 Troubleshooting
+
+<details>
+<summary><strong>docker compose up fails with "port already in use"</strong></summary>
+
+Something else is using port 3306, 8080, 3001, or 5173. Kill it or change the port mapping in `docker-compose.yml`.
+</details>
+
+<details>
+<summary><strong>API keeps restarting with "Communications link failure"</strong></summary>
+
+MySQL isn't ready yet. The API container has `depends_on` with a health check, but on slower machines it might take a minute. Just wait — it retries automatically.
+</details>
+
+<details>
+<summary><strong>Edge node says "Config file not found"</strong></summary>
+
+Make sure you're running from the project root: `python edge/main.py --mock`. The edge node looks for `config/zones.json` relative to the project root.
+</details>
+
+<details>
+<summary><strong>Dashboard shows "API CONNECTION LOST" banner</strong></summary>
+
+The Spring Boot API isn't reachable. Check that the `api` container is running (`docker compose ps`) and port 8080 is exposed.
+</details>
+
+<details>
+<summary><strong>"shelf_baseline.jpg not found" in live mode</strong></summary>
+
+You need to calibrate first: `python edge/calibrate.py --camera 0`. This captures a reference image of a full shelf. Not needed in `--mock` mode.
+</details>
+
+<details>
+<summary><strong>Mock supplier build fails with "better-sqlite3" errors</strong></summary>
+
+Needs native build tools. The Dockerfile handles this automatically. If running locally, `npm install` requires Python 3 and a C++ compiler on your PATH.
+</details>
+
+<br/>
+
