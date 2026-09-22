@@ -325,3 +325,46 @@ Needs native build tools. The Dockerfile handles this automatically. If running 
 
 <br/>
 
+---
+
+## 🧩 Key Design Decisions
+
+We logged every non-obvious decision. Here are a few:
+
+| Decision | Choice | Why |
+|----------|--------|-----|
+| Person detector | YOLOv8n with HOG fallback | Smallest YOLO model, zero-GPU, HOG works without model download |
+| Shelf fill algorithm | SSIM with edge-density fallback | Well-tested, fallback works in CI without heavy deps |
+| Frontend data fetching | Polling (no SSE/WebSocket) | SSE adds connection management complexity; polling is rock-solid for demos |
+| Mock supplier persistence | SQLite via better-sqlite3 | Zero-config, orders inspectable after demo |
+| Duplicate telemetry | Unique index on (device_id, recorded_at) | Idempotency without distributed locking |
+
+> 📝 Full log with 15 decisions in [`DECISIONS.md`](DECISIONS.md)
+
+<br/>
+
+---
+
+## 🤝 Contributing
+
+PRs are welcome. Check out [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, code style, and how to test things.
+
+The short version:
+1. Fork it, branch off `main`
+2. Make your changes, keep commits small
+3. `make test` to verify nothing broke
+4. Open a PR — the template will guide you
+
+<br/>
+
+---
+
+## 📜 License
+
+MIT — see [`LICENSE`](LICENSE) for the full text.
+
+---
+
+<p align="center">
+  <sub>Built with coffee, curiosity, and way too many late nights.</sub>
+</p>
