@@ -187,3 +187,78 @@ This project is designed to be **safe by default**. No surprises.
 
 <br/>
 
+---
+
+## ⚙️ Configuration
+
+All config lives in a single `.env` file. Copy the example and you're good to go.
+
+```bash
+cp .env.example .env    # all defaults work for local development
+```
+
+<details>
+<summary><strong>📋 Full environment variable reference</strong></summary>
+
+<br/>
+
+| Variable | Default | What it controls |
+|----------|---------|-----------------|
+| `DB_URL` | `jdbc:mysql://mysql:3306/singularity` | MySQL JDBC connection string |
+| `DB_USER` | `singularity` | Database username |
+| `DB_PASSWORD` | `singularity_pass` | Database password |
+| `CORS_ALLOWED_ORIGIN` | `http://localhost:5173` | Allowed origin for the React app |
+| `AUTO_APPROVE` | `false` | Skip the human approval gate (⚠️ keep false) |
+| `SURGE_THRESHOLD` | `4` | Number of people to trigger a surge event |
+| `LOW_STOCK_THRESHOLD` | `20` | Shelf fill % below which low-stock triggers |
+| `RAZORPAY_KEY_ID` | `rzp_test_...` | Razorpay test key (no real charges) |
+| `RAZORPAY_KEY_SECRET` | `...` | Razorpay test secret |
+
+</details>
+
+<br/>
+
+---
+
+## 📂 Project Structure
+
+```
+project-singularity/
+│
+├── edge/                    🧠  Python CV edge node
+│   ├── main.py                  Main detection loop
+│   ├── calibrate.py             Shelf baseline calibration tool
+│   ├── agent_orchestration.py   Agent coordination logic
+│   ├── detectors/               YOLOv8n + HOG + SSIM modules
+│   └── tests/                   pytest test suite
+│
+├── api/                     ⚡  Spring Boot REST API
+│   └── src/main/java/...
+│       ├── controller/          REST endpoints
+│       ├── service/             Business logic + agents
+│       ├── model/               JPA entities
+│       └── dto/                 Request/response objects
+│
+├── frontend/                🖥️  React command center
+│   └── src/
+│       ├── components/          Dashboard panels + drawers
+│       ├── hooks/               Polling + query hooks
+│       └── api/                 API client
+│
+├── mock-supplier/           🏪  Sandboxed vendor (Next.js)
+├── config/                  📁  Shared config (zone ROIs)
+├── pitch/                   🎤  Demo script + architecture SVG
+├── docs/assets/             🖼️  README images
+│
+├── docker-compose.yml       🐳  Full stack orchestration
+├── Makefile                 🔧  Developer shortcuts
+├── .env.example             📋  Environment variable reference
+├── CONTRIBUTING.md          🤝  How to contribute
+├── DECISIONS.md             📝  Architecture decision log
+├── SECURITY.md              🔒  Security policy
+├── CHANGELOG.md             📜  Release history
+└── LICENSE                  ⚖️   MIT
+```
+
+<br/>
+
