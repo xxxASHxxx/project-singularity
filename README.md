@@ -128,3 +128,62 @@ python edge/main.py --camera 0          # then run live detection
 
 <br/>
 
+---
+
+## 🏗️ Architecture
+
+<p align="center">
+  <img src="docs/assets/architecture-diagram.jpg" alt="System Architecture" width="90%" />
+</p>
+
+<br/>
+
+### Tech Stack
+
+<table>
+  <tr>
+    <th>Layer</th>
+    <th>Technology</th>
+    <th>What it does</th>
+  </tr>
+  <tr>
+    <td><strong>🧠 Edge Node</strong></td>
+    <td>Python · OpenCV · YOLOv8n · scikit-image</td>
+    <td>Person detection + shelf-fill analysis via SSIM. Posts telemetry JSON every 5s.</td>
+  </tr>
+  <tr>
+    <td><strong>⚡ API</strong></td>
+    <td>Java 21 · Spring Boot · Flyway · MySQL 8</td>
+    <td>Telemetry ingestion, threshold checking, mission lifecycle, Razorpay integration.</td>
+  </tr>
+  <tr>
+    <td><strong>🖥️ Frontend</strong></td>
+    <td>React 18 · TypeScript · TanStack Query · Vite</td>
+    <td>Real-time command center with telemetry charts, mission queue, agent activity feed.</td>
+  </tr>
+  <tr>
+    <td><strong>🏪 Mock Supplier</strong></td>
+    <td>Next.js 14 · SQLite</td>
+    <td>Sandboxed vendor site where restock agents place demo purchase orders.</td>
+  </tr>
+  <tr>
+    <td><strong>🐳 Infrastructure</strong></td>
+    <td>Docker Compose · GitHub Actions CI</td>
+    <td>One-command full stack. CI runs Python lint, tests, and frontend type-check.</td>
+  </tr>
+</table>
+
+<br/>
+
+### 🛡️ Safety Rails
+
+This project is designed to be **safe by default**. No surprises.
+
+- `AUTO_APPROVE=false` — every mission needs a human click before agents act
+- **Mock supplier** is a local sandboxed site — agents never touch real e-commerce
+- **No facial recognition** or biometric code anywhere in this repo
+- **Razorpay runs in TEST mode** — no real money is ever charged
+- Surge pricing is **capped at +15%** — hard limit, not configurable
+
+<br/>
+
