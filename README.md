@@ -57,3 +57,74 @@ Everything converges in the **React Command Center** — a technical noir dashbo
 
 <br/>
 
+<p align="center">
+  <img src="docs/assets/dashboard-preview.jpg" alt="Command Center Dashboard" width="90%" />
+</p>
+<p align="center"><em>The command center — live telemetry, mission queue, agent activity feed, system status. All in one place.</em></p>
+
+<br/>
+
+---
+
+## 🚀 Quick Start
+
+You can have the full system running in about 10 minutes. No cloud accounts needed.
+
+### Prerequisites
+
+| Tool | Version | Required? |
+|------|---------|-----------|
+| Docker Desktop | with Compose v2 | ✅ Yes |
+| Python | 3.10+ | Only for local edge dev |
+| Node.js | 20+ | Only for mock supplier dev |
+| Java + Maven | 21 | Only for API dev |
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/xxxASHxxx/project-singularity.git
+cd project-singularity
+cp .env.example .env    # defaults work out of the box
+```
+
+### 2. Fire up the full stack
+
+```bash
+docker compose up --build
+```
+
+This starts **everything**: MySQL 8, Spring Boot API (`:8080`), Mock Supplier (`:3001`), React Frontend (`:5173`), and the Edge Node in mock mode.
+
+Wait for `api | Started SingularityApplication` in the logs — that's your green light.
+
+### 3. Open the dashboard
+
+Head to **http://localhost:5173**. Within 60 seconds you'll see telemetry events start rolling in as the edge node replays its demo sequence.
+
+### 4. Approve a mission
+
+Find the `PENDING_APPROVAL` mission in the queue. Click **Approve**. That's the human-in-the-loop moment.
+
+### 5. Watch agents work
+
+- **Restock Agent** → browses the mock supplier, adds to cart, places a purchase order
+- **Pricing Agent** → calculates a surge price adjustment (capped at +15%), writes a rationale
+- **Reporting Agent** → assembles the full audit trail as Markdown artifacts
+
+### Running the edge node locally
+
+If you want to tinker with the edge node outside of Docker:
+
+```bash
+pip install -r edge/requirements.txt
+
+# Mock mode — no webcam required, great for development
+python edge/main.py --mock
+
+# Live mode — with a real webcam
+python edge/calibrate.py --camera 0    # capture shelf baseline first
+python edge/main.py --camera 0          # then run live detection
+```
+
+<br/>
+
