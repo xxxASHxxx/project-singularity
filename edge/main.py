@@ -14,7 +14,7 @@ import sys
 import time
 from collections import deque
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import requests
 
@@ -65,7 +65,7 @@ def get_failed_payloads_count(log_path: Path = FAILED_LOG) -> int:
 
 def replay_failed_payloads(api_url: str, limit: int = 20, timeout: int = 5, log_path: Path = FAILED_LOG) -> int:
     """Replay buffered failed payloads to the API.
-    
+
     Returns count of successfully replayed payloads.
     Successfully delivered items are purged from the DLQ file.
     """
@@ -249,7 +249,7 @@ def run_live(args, cfg: Dict[str, Any]):
 # Mock mode loop
 # ---------------------------------------------------------------------------
 def run_mock(args, cfg: Dict[str, Any]):
-    from mock_data import get_mock_sequence, MOCK_SEQUENCE
+    from mock_data import MOCK_SEQUENCE, get_mock_sequence
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)

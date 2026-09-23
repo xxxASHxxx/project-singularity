@@ -1,7 +1,8 @@
 """Person detector with YOLOv8n primary and OpenCV HOG fallback."""
-import numpy as np
-import cv2
 from typing import List, Tuple
+
+import cv2
+import numpy as np
 
 try:
     from ultralytics import YOLO
@@ -21,7 +22,7 @@ class PersonDetector:
             self._hog = cv2.HOGDescriptor()
             self._hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
             self._backend = 'hog'
-            print(f"[PersonDetector] ultralytics not available, using HOG fallback")
+            print("[PersonDetector] ultralytics not available, using HOG fallback")
 
     @property
     def backend(self) -> str:

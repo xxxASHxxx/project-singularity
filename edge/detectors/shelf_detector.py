@@ -1,7 +1,8 @@
 """Shelf fill ratio detector using SSIM or edge-density fallback."""
-import numpy as np
-import cv2
 from typing import Optional
+
+import cv2
+import numpy as np
 
 try:
     from skimage.metrics import structural_similarity as ssim
@@ -12,10 +13,10 @@ except ImportError:
 
 class ShelfDetector:
     """Computes shelf fill ratio by comparing current frame to a reference.
-    
+
     Uses SSIM primary; falls back to edge-density delta if scikit-image
     is not available.
-    
+
     Fill ratio = 100 means identical to the full/calibrated reference.
     Fill ratio = 0 means maximally different (empty shelf).
     """

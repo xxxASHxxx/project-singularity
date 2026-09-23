@@ -4,6 +4,7 @@ Tests use synthetic numpy frames to validate SSIM/edge-density math.
 """
 import sys
 from pathlib import Path
+
 import numpy as np
 import pytest
 

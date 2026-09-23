@@ -9,16 +9,17 @@ Use them for:
 
 Usage:
   python edge/agent_orchestration.py restock   # run restock agent
-  python edge/agent_orchestration.py pricing   # run pricing agent  
+  python edge/agent_orchestration.py pricing   # run pricing agent
   python edge/agent_orchestration.py reporting # run reporting agent
   python edge/agent_orchestration.py all       # run all three in threads
 """
-import sys
-import json
-import time
 import datetime
-import threading
+import json
 import logging
+import sys
+import threading
+import time
+
 import requests
 
 logging.basicConfig(
@@ -221,7 +222,7 @@ def run_restock_mission(mission: dict, log):
     # poll briefly to confirm before logging success
     time.sleep(1)
     try:
-        updated = api_get(f"/api/v1/missions")
+        updated = api_get("/api/v1/missions")
         mission_state = next((m for m in updated if m["id"] == mid), None)
         final_status = mission_state["status"] if mission_state else "UNKNOWN"
         log.info(f"Mission #{mid}: Final status after webhook = {final_status}")
@@ -262,7 +263,7 @@ def run_pricing_mission(mission: dict, log):
 
     # Get triggering event
     try:
-        events = api_get(f"/api/v1/telemetry/latest?n=100")
+        events = api_get("/api/v1/telemetry/latest?n=100")
         trigger_event = next((e for e in events if e["id"] == event_id), None)
         occupancy = trigger_event["zoneOccupancyCount"] if trigger_event else 6
         surge_threshold = 4

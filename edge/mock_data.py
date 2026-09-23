@@ -3,9 +3,9 @@
 Ramps occupancy 0→6 to trigger surge, then drops shelf fill to trigger low-stock.
 Both triggers fire within 60 seconds at 5s intervals.
 """
-from typing import Iterator, Dict, Any, Optional
 import datetime
 import random
+from typing import Any, Dict, Iterator, Optional
 
 # Sequence of (zone_occupancy_count, shelf_fill_ratio)
 # 12 samples × 5s = 60s total
@@ -66,7 +66,7 @@ def get_mock_sequence(
     seed: Optional[int] = None
 ) -> Iterator[Dict[str, Any]]:
     """Infinite iterator that cycles through the mock sequence.
-    
+
     Args:
         device_id: Identifier for the edge sensor node.
         jitter: If True, adds minor realistic sub-percent sensor fluctuations.
