@@ -51,7 +51,7 @@ export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pe
           {' · '}
           {time.toLocaleTimeString('en-US', { hour12: false })}
         </span>
-        <span className="font-mono text-xs text-gray-700" title="Version">v0.3.0</span>
+        <span className="font-mono text-xs text-gray-700" title="Version">v0.4.0</span>
       </div>
     </div>
   );

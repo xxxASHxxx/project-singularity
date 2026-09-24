@@ -6,11 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] — 2026-09-24
+
 ### Added
+- **Keyboard shortcuts overlay** — press `?` to see all available shortcuts; `Escape` intelligently closes overlay → drawer → nothing
+- `useKeyboardShortcuts` hook for global keyboard event handling in the React app
+- **Preflight API health check** in edge node — pings the API with exponential backoff before starting the main telemetry loop
+- `--skip-healthcheck` CLI flag for the edge node to bypass the preflight check
+- Health check reports DLQ buffered payload count on successful connection
+- Unit tests for the preflight health check (success, failure, retry-recovery)
 - `Makefile` with developer shortcuts (`make dev`, `make test`, `make lint`, etc.)
 - `LICENSE` (MIT)
 - GitHub Issue Templates for bug reports and feature requests
 - This `CHANGELOG.md`
+
+### Changed
+- TopBar now shows `⌨ Press ? for shortcuts` instead of `⌨ ESC to close`
+- Keyboard shortcuts overlay uses smooth fade-in and scale-in CSS animations
 
 ---
 
