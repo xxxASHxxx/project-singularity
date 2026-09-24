@@ -275,6 +275,43 @@ def run_mock(args, cfg: Dict[str, Any]):
 
 
 # ---------------------------------------------------------------------------
+# Preflight health check
+# ---------------------------------------------------------------------------
+def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5) -> bool:
+    """Ping the API before starting the main loop.
+
+    Retries with exponential backoff. Returns True if API is reachable.
+    """
+    url = f"{api_url}/api/v1/telemetry/latest?n=1"
+    log.info("─" * 50)
+    log.info("PREFLIGHT HEALTH CHECK")
+    log.info(f"  Target: {api_url}")
+    log.info(f"  Max attempts: {max_attempts}")
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            r = requests.get(url, timeout=timeout)
+            r.raise_for_status()
+            log.info(f"  ✓ API reachable (HTTP {r.status_code}) on attempt {attempt}")
+            dlq_count = get_failed_payloads_count()
+            if dlq_count > 0:
+                log.info(f"  ℹ DLQ has {dlq_count} buffered payload(s) — will drain opportunistically")
+            log.info("─" * 50)
+            return True
+        except requests.RequestException as e:
+            wait = 2 ** attempt
+            if attempt < max_attempts:
+                log.warning(f"  ✗ Attempt {attempt}/{max_attempts} failed: {e}. Retrying in {wait}s…")
+                time.sleep(wait)
+            else:
+                log.warning(f"  ✗ Attempt {attempt}/{max_attempts} failed: {e}")
+
+    log.warning("  API unreachable after all attempts — starting anyway (will buffer to DLQ)")
+    log.info("─" * 50)
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 def main():
@@ -285,6 +322,7 @@ def main():
     parser.add_argument('--headless', action='store_true', help='Do not show preview window')
     parser.add_argument('--replay-failed', action='store_true', help='Drain and replay all buffered failed payloads to API')
     parser.add_argument('--dlq-status', action='store_true', help='Display current dead-letter queue count and exit')
+    parser.add_argument('--skip-healthcheck', action='store_true', help='Skip the preflight API health check')
     args = parser.parse_args()
 
     if args.dlq_status:
@@ -304,6 +342,12 @@ def main():
         replayed = replay_failed_payloads(args.api_url, limit=500)
         log.info(f"DLQ replay complete: {replayed} payloads delivered successfully")
         return
+
+    # Preflight health check (non-blocking — proceeds even if API is down)
+    if not args.skip_healthcheck:
+        preflight_health_check(args.api_url)
+    else:
+        log.info("Skipping preflight health check (--skip-healthcheck)")
 
     try:
         if args.mock:
