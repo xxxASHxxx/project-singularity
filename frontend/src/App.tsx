@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useMissions } from './hooks/usePolling';
 import TopBar from './components/TopBar';
 import TelemetryPanel from './components/TelemetryPanel';
@@ -6,11 +6,13 @@ import MissionQueue from './components/MissionQueue';
 import AgentActivityFeed from './components/AgentActivityFeed';
 import MissionDetailDrawer from './components/MissionDetailDrawer';
 import AnalyticsPanel from './components/AnalyticsPanel';
+import KeyboardShortcutsOverlay, { useKeyboardShortcuts } from './components/KeyboardShortcutsOverlay';
 import type { AgentMission } from './api/client';
 
 export default function App() {
   const { data: missions = [], isError } = useMissions();
   const [selectedMission, setSelectedMission] = useState<AgentMission | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Session uptime
   const [sessionStart] = useState(() => Date.now());
@@ -37,6 +39,16 @@ export default function App() {
   }, [isError]);
 
   const pendingCount = (missions || []).filter(m => m.status === 'PENDING_APPROVAL').length;
+
+  // Global keyboard shortcuts
+  const shortcutHandlers = useMemo(() => ({
+    '?': () => setShowShortcuts(prev => !prev),
+    'Escape': () => {
+      if (showShortcuts) setShowShortcuts(false);
+      else if (selectedMission) setSelectedMission(null);
+    },
+  }), [showShortcuts, selectedMission]);
+  useKeyboardShortcuts(shortcutHandlers);
 
   return (
     <div className="min-h-screen" style={{ background: '#0A0A0B' }}>
@@ -128,6 +140,9 @@ export default function App() {
 
       {/* Mission detail drawer */}
       <MissionDetailDrawer mission={selectedMission} onClose={() => setSelectedMission(null)} />
+
+      {/* Keyboard shortcuts overlay */}
+      <KeyboardShortcutsOverlay isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

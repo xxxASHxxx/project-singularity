@@ -38,8 +38,8 @@ export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pe
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-xs text-gray-700 font-mono hidden lg:inline" title="Press Esc to close mission drawer">
-          ⌨ ESC to close
+        <span className="text-xs text-gray-700 font-mono hidden lg:inline" title="Press ? to view all keyboard shortcuts">
+          ⌨ Press ? for shortcuts
         </span>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${apiOk ? 'bg-green-accent' : 'bg-red-accent'}`}
