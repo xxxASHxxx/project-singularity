@@ -8,6 +8,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.0] — 2026-09-25
+
+### Added
+- **Command palette** (`Ctrl+K`) — fuzzy-search command runner with keyboard navigation, scoring-based results, and 8 built-in commands
+- **Desktop notifications** for surge and low-stock alerts — rising-edge detection with 30s cooldown to prevent spam; toggle via `N` key
+- **Connection quality monitor** — real-time latency tracking, 30-sample rolling average, session uptime %, and visual latency bar with color-coded status (EXCELLENT/GOOD/DEGRADED/OFFLINE)
+- **Telemetry session statistics tracker** (`TelemetrySessionStats`) — cumulative min/max/avg for occupancy and fill ratio, success rate, throughput/min, alert counts, JSON export
+- **DLQ age statistics** (`get_dlq_age_stats()`) — reports oldest/newest timestamps and byte count for dead-letter queue entries
+- **DLQ auto-purge** — entries older than 72h are automatically cleaned on successful health check; manual `--dlq-purge HOURS` CLI flag
+- **JSON health report** (`--health-report`) — comprehensive diagnostic output with system info, API latency, and DLQ stats
+- New keyboard shortcuts: `D`/`T`/`M`/`A` for panel navigation, `R` for refresh, `F` for fullscreen, `N` for notifications
+- 20 new unit tests covering DLQ stats/purge, health report structure, and session stats tracker
+- Notification status shown in TopBar (bell icon) and System Status panel
+
+### Changed
+- **Keyboard shortcuts overlay** completely rebuilt: categorized into Navigation/Telemetry/Actions/System with live search/filter, combo key support (`Ctrl+` modifiers), hover highlights, and gradient styling
+- `useKeyboardShortcuts` hook now supports `Ctrl+key` modifier combinations
+- `preflight_health_check()` returns a structured report dict (with latency measurements) instead of a plain bool
+- Health check log lines now include response latency in milliseconds
+- TopBar hint updated to show `Ctrl+K palette` alongside `?` shortcut
+- Mock mode now tracks and logs session statistics every cycle
+- Session summary banner printed on graceful shutdown (Ctrl+C)
+
+---
+
 ## [0.4.0] — 2026-09-24
 
 ### Added
