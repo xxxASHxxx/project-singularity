@@ -331,11 +331,13 @@ def run_live(args, cfg: Dict[str, Any]):
 # ---------------------------------------------------------------------------
 def run_mock(args, cfg: Dict[str, Any]):
     from mock_data import MOCK_SEQUENCE, get_mock_sequence
+    from telemetry_stats import TelemetrySessionStats
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
     sequence = get_mock_sequence(device_id)
     cycle_len = len(MOCK_SEQUENCE)
+    stats = TelemetrySessionStats()
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
     log.info("Surge will fire at ~t=25s, low-stock at ~t=40s")
@@ -345,14 +347,23 @@ def run_mock(args, cfg: Dict[str, Any]):
     for payload in sequence:
         if sample_idx > 0 and sample_idx % cycle_len == 0:
             log.info(f"[MOCK] Cycle {payload.get('cycleCount', '?')} starting — looping demo sequence")
+            # Log periodic stats every cycle
+            log.info(f"[STATS] {stats}")
         log.info(
             f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
             f"fill={payload['shelfFillRatio']}% "
             f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
         )
-        post_telemetry(payload, args.api_url, timeout=timeout)
+        result = post_telemetry(payload, args.api_url, timeout=timeout)
+        if result is not None:
+            payload_bytes = len(json.dumps(payload))
+            stats.record_success(payload, payload_bytes)
+        else:
+            stats.record_failure()
         time.sleep(interval)
         sample_idx += 1
+
+    return stats
 
 
 # ---------------------------------------------------------------------------
@@ -501,6 +512,9 @@ def main():
             run_live(args, cfg)
     except KeyboardInterrupt:
         log.info("Edge node stopped by operator")
+        log.info("─" * 50)
+        log.info("SESSION SUMMARY")
+        log.info("─" * 50)
 
 
 if __name__ == '__main__':
