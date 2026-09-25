@@ -10,11 +10,12 @@ import datetime
 import json
 import logging
 import os
+import platform
 import sys
 import time
 from collections import deque
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -61,6 +62,86 @@ def get_failed_payloads_count(log_path: Path = FAILED_LOG) -> int:
             if line.strip():
                 count += 1
     return count
+
+
+def get_dlq_age_stats(log_path: Path = FAILED_LOG) -> Dict[str, Any]:
+    """Return age statistics for DLQ entries.
+
+    Returns dict with oldest_timestamp, newest_timestamp, and total_bytes.
+    """
+    if not log_path.exists() or log_path.stat().st_size == 0:
+        return {'oldest': None, 'newest': None, 'total_bytes': 0, 'count': 0}
+
+    oldest = None
+    newest = None
+    count = 0
+
+    with open(log_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            count += 1
+            try:
+                payload = json.loads(line)
+                ts = payload.get('timestamp')
+                if ts:
+                    if oldest is None or ts < oldest:
+                        oldest = ts
+                    if newest is None or ts > newest:
+                        newest = ts
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+    return {
+        'oldest': oldest,
+        'newest': newest,
+        'total_bytes': log_path.stat().st_size if log_path.exists() else 0,
+        'count': count,
+    }
+
+
+def purge_old_dlq_entries(
+    max_age_hours: int = 72,
+    log_path: Path = FAILED_LOG,
+) -> int:
+    """Remove DLQ entries older than max_age_hours.
+
+    Returns the number of purged entries.
+    """
+    if not log_path.exists() or log_path.stat().st_size == 0:
+        return 0
+
+    cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=max_age_hours)
+    cutoff_iso = cutoff.isoformat().replace('+00:00', 'Z')
+
+    kept: List[str] = []
+    purged = 0
+
+    with open(log_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+                ts = payload.get('timestamp', '')
+                if ts < cutoff_iso:
+                    purged += 1
+                    continue
+            except (json.JSONDecodeError, TypeError):
+                pass
+            kept.append(line)
+
+    if purged > 0:
+        temp_file = log_path.with_suffix('.tmp')
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            for entry in kept:
+                f.write(entry + '\n')
+        temp_file.replace(log_path)
+        log.info(f"DLQ auto-purge: removed {purged} entries older than {max_age_hours}h")
+
+    return purged
 
 
 def replay_failed_payloads(api_url: str, limit: int = 20, timeout: int = 5, log_path: Path = FAILED_LOG) -> int:
@@ -277,10 +358,10 @@ def run_mock(args, cfg: Dict[str, Any]):
 # ---------------------------------------------------------------------------
 # Preflight health check
 # ---------------------------------------------------------------------------
-def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5) -> bool:
+def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5) -> Dict[str, Any]:
     """Ping the API before starting the main loop.
 
-    Retries with exponential backoff. Returns True if API is reachable.
+    Retries with exponential backoff. Returns a structured health report dict.
     """
     url = f"{api_url}/api/v1/telemetry/latest?n=1"
     log.info("─" * 50)
@@ -288,27 +369,76 @@ def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5
     log.info(f"  Target: {api_url}")
     log.info(f"  Max attempts: {max_attempts}")
 
+    latencies: List[float] = []
+    report: Dict[str, Any] = {
+        'api_url': api_url,
+        'reachable': False,
+        'attempts_used': 0,
+        'max_attempts': max_attempts,
+        'latencies_ms': [],
+        'avg_latency_ms': None,
+        'status_code': None,
+        'dlq_count': 0,
+        'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
+    }
+
     for attempt in range(1, max_attempts + 1):
+        report['attempts_used'] = attempt
+        start = time.monotonic()
         try:
             r = requests.get(url, timeout=timeout)
             r.raise_for_status()
-            log.info(f"  ✓ API reachable (HTTP {r.status_code}) on attempt {attempt}")
+            latency = round((time.monotonic() - start) * 1000, 1)
+            latencies.append(latency)
+            report['latencies_ms'] = latencies
+            report['avg_latency_ms'] = round(sum(latencies) / len(latencies), 1)
+            report['status_code'] = r.status_code
+            report['reachable'] = True
+
+            log.info(f"  ✓ API reachable (HTTP {r.status_code}, {latency}ms) on attempt {attempt}")
             dlq_count = get_failed_payloads_count()
+            report['dlq_count'] = dlq_count
             if dlq_count > 0:
                 log.info(f"  ℹ DLQ has {dlq_count} buffered payload(s) — will drain opportunistically")
             log.info("─" * 50)
-            return True
+
+            # Auto-purge old DLQ entries on successful connection
+            purge_old_dlq_entries(max_age_hours=72)
+
+            return report
         except requests.RequestException as e:
+            latency = round((time.monotonic() - start) * 1000, 1)
+            latencies.append(latency)
             wait = 2 ** attempt
             if attempt < max_attempts:
-                log.warning(f"  ✗ Attempt {attempt}/{max_attempts} failed: {e}. Retrying in {wait}s…")
+                log.warning(f"  ✗ Attempt {attempt}/{max_attempts} failed ({latency}ms): {e}. Retrying in {wait}s…")
                 time.sleep(wait)
             else:
-                log.warning(f"  ✗ Attempt {attempt}/{max_attempts} failed: {e}")
+                log.warning(f"  ✗ Attempt {attempt}/{max_attempts} failed ({latency}ms): {e}")
 
+    report['latencies_ms'] = latencies
+    report['avg_latency_ms'] = round(sum(latencies) / len(latencies), 1) if latencies else None
     log.warning("  API unreachable after all attempts — starting anyway (will buffer to DLQ)")
     log.info("─" * 50)
-    return False
+    return report
+
+
+def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
+    """Generate a comprehensive JSON health report for diagnostics."""
+    health = preflight_health_check(api_url, max_attempts=3, timeout=timeout)
+    dlq_stats = get_dlq_age_stats()
+
+    return {
+        'version': 'v0.5.0',
+        'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
+        'system': {
+            'python_version': platform.python_version(),
+            'platform': platform.platform(),
+            'hostname': platform.node(),
+        },
+        'api_health': health,
+        'dlq': dlq_stats,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -323,6 +453,9 @@ def main():
     parser.add_argument('--replay-failed', action='store_true', help='Drain and replay all buffered failed payloads to API')
     parser.add_argument('--dlq-status', action='store_true', help='Display current dead-letter queue count and exit')
     parser.add_argument('--skip-healthcheck', action='store_true', help='Skip the preflight API health check')
+    parser.add_argument('--health-report', action='store_true', help='Generate a full JSON health report and exit')
+    parser.add_argument('--dlq-purge', type=int, metavar='HOURS', default=None,
+                        help='Purge DLQ entries older than HOURS hours and exit')
     args = parser.parse_args()
 
     if args.dlq_status:
@@ -336,6 +469,16 @@ def main():
         args.api_url = os.environ.get('API_URL') or cfg.get('api_url', 'http://localhost:8080')
 
     log.info(f"API URL: {args.api_url}")
+
+    if args.health_report:
+        report = generate_health_report(args.api_url)
+        print(json.dumps(report, indent=2))
+        return
+
+    if args.dlq_purge is not None:
+        purged = purge_old_dlq_entries(max_age_hours=args.dlq_purge)
+        print(f"Purged {purged} DLQ entries older than {args.dlq_purge}h")
+        return
 
     if args.replay_failed:
         log.info(f"Explicitly draining DLQ to {args.api_url}...")
