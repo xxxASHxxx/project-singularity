@@ -9,6 +9,7 @@ import MissionDetailDrawer from './components/MissionDetailDrawer';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import KeyboardShortcutsOverlay, { useKeyboardShortcuts } from './components/KeyboardShortcutsOverlay';
 import CommandPalette from './components/CommandPalette';
+import ConnectionQualityIndicator from './components/ConnectionQualityIndicator';
 import type { Command } from './components/CommandPalette';
 import type { AgentMission } from './api/client';
 
@@ -286,6 +287,9 @@ export default function App() {
                 ))}
               </div>
             </div>
+
+            {/* Connection quality */}
+            <ConnectionQualityIndicator />
           </div>
         </div>
       </div>
