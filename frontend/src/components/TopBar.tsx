@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pendingCount?: number }) {
+export default function TopBar({ apiOk, pendingCount = 0, notificationsEnabled = false }: { apiOk: boolean; pendingCount?: number; notificationsEnabled?: boolean }) {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -39,8 +39,17 @@ export default function TopBar({ apiOk, pendingCount = 0 }: { apiOk: boolean; pe
       </div>
       <div className="flex items-center gap-4">
         <span className="text-xs text-gray-700 font-mono hidden lg:inline" title="Press ? to view all keyboard shortcuts">
-          ⌨ Press ? for shortcuts
+          ⌨ Press ? for shortcuts · Ctrl+K palette
         </span>
+        {notificationsEnabled && (
+          <span
+            className="text-xs font-mono"
+            style={{ color: '#22C55E' }}
+            title="Desktop notifications enabled"
+          >
+            🔔
+          </span>
+        )}
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${apiOk ? 'bg-green-accent' : 'bg-red-accent'}`}
                style={{ boxShadow: apiOk ? '0 0 6px #22C55E' : '0 0 6px #FF3B30' }} />

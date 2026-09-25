@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useMissions } from './hooks/usePolling';
+import { useMissions, useTelemetry } from './hooks/usePolling';
+import { useAlertNotifications } from './hooks/useAlertNotifications';
 import TopBar from './components/TopBar';
 import TelemetryPanel from './components/TelemetryPanel';
 import MissionQueue from './components/MissionQueue';
@@ -13,10 +14,15 @@ import type { AgentMission } from './api/client';
 
 export default function App() {
   const { data: missions = [], isError } = useMissions();
+  const { data: telemetryEvents = [] } = useTelemetry();
   const [selectedMission, setSelectedMission] = useState<AgentMission | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // Desktop notifications for surge/low-stock alerts
+  const latestTelemetry = telemetryEvents.length > 0 ? telemetryEvents[0] : null;
+  useAlertNotifications({ enabled: notificationsEnabled, latestEvent: latestTelemetry });
 
   // Session uptime
   const [sessionStart] = useState(() => Date.now());
