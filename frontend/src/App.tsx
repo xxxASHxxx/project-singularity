@@ -11,6 +11,7 @@ import KeyboardShortcutsOverlay, { useKeyboardShortcuts } from './components/Key
 import CommandPalette from './components/CommandPalette';
 import ConnectionQualityIndicator from './components/ConnectionQualityIndicator';
 import MissionTimeline from './components/MissionTimeline';
+import OccupancyHeatmap from './components/OccupancyHeatmap';
 import type { Command } from './components/CommandPalette';
 import type { AgentMission } from './api/client';
 
@@ -243,6 +244,7 @@ export default function App() {
             <div ref={telemetryRef}>
               <TelemetryPanel />
             </div>
+            <OccupancyHeatmap />
             <div ref={activityRef}>
               <AgentActivityFeed missions={missions} />
             </div>

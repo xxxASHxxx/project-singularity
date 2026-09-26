@@ -134,3 +134,8 @@ body { scrollbar-width: thin; }
 .timeline-bar-active {
   animation: timeline-pulse 1.8s ease-in-out infinite;
 }
+
+/* Heatmap cell hover glow */
+.heatmap-cell:hover {
+  box-shadow: 0 0 8px rgba(255,255,255,0.1);
+}
