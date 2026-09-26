@@ -332,12 +332,14 @@ def run_live(args, cfg: Dict[str, Any]):
 def run_mock(args, cfg: Dict[str, Any]):
     from mock_data import MOCK_SEQUENCE, get_mock_sequence
     from telemetry_stats import TelemetrySessionStats
+    from heartbeat import HeartbeatMonitor
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
     sequence = get_mock_sequence(device_id)
     cycle_len = len(MOCK_SEQUENCE)
     stats = TelemetrySessionStats()
+    heartbeat = HeartbeatMonitor()
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
     log.info("Surge will fire at ~t=25s, low-stock at ~t=40s")
@@ -349,6 +351,7 @@ def run_mock(args, cfg: Dict[str, Any]):
             log.info(f"[MOCK] Cycle {payload.get('cycleCount', '?')} starting — looping demo sequence")
             # Log periodic stats every cycle
             log.info(f"[STATS] {stats}")
+            log.info(f"[HEARTBEAT] {heartbeat}")
         log.info(
             f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
             f"fill={payload['shelfFillRatio']}% "
@@ -358,12 +361,14 @@ def run_mock(args, cfg: Dict[str, Any]):
         if result is not None:
             payload_bytes = len(json.dumps(payload))
             stats.record_success(payload, payload_bytes)
+            heartbeat.record_success()
         else:
             stats.record_failure()
+            heartbeat.record_failure()
         time.sleep(interval)
         sample_idx += 1
 
-    return stats
+    return stats, heartbeat
 
 
 # ---------------------------------------------------------------------------
@@ -436,11 +441,13 @@ def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5
 
 def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
     """Generate a comprehensive JSON health report for diagnostics."""
+    from heartbeat import HeartbeatMonitor
     health = preflight_health_check(api_url, max_attempts=3, timeout=timeout)
     dlq_stats = get_dlq_age_stats()
+    hb = HeartbeatMonitor()
 
     return {
-        'version': 'v0.5.0',
+        'version': 'v0.6.0',
         'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
         'system': {
             'python_version': platform.python_version(),
@@ -448,6 +455,7 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
             'hostname': platform.node(),
         },
         'api_health': health,
+        'heartbeat': hb.to_dict(),
         'dlq': dlq_stats,
     }
 
