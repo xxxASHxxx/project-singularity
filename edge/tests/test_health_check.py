@@ -17,7 +17,7 @@ def test_preflight_health_check_success():
 
     with patch('requests.get', return_value=mock_resp) as mock_get:
         result = preflight_health_check("http://mock-api:8080", max_attempts=1, timeout=2)
-        assert result is True
+        assert result['reachable'] is True
         mock_get.assert_called_once()
 
 
@@ -28,7 +28,7 @@ def test_preflight_health_check_failure_all_retries():
     with patch('requests.get', side_effect=req.ConnectionError("Connection refused")):
         # max_attempts=2 so it retries once then gives up
         result = preflight_health_check("http://unreachable:8080", max_attempts=2, timeout=1)
-        assert result is False
+        assert result['reachable'] is False
 
 
 def test_preflight_health_check_recovers_on_retry():
@@ -41,4 +41,4 @@ def test_preflight_health_check_recovers_on_retry():
 
     with patch('requests.get', side_effect=[req.ConnectionError("fail"), mock_success]):
         result = preflight_health_check("http://mock-api:8080", max_attempts=3, timeout=1)
-        assert result is True
+        assert result['reachable'] is True
