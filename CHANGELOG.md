@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.0] — 2026-09-26
+
+### Added
+- **Mission timeline** with duration bars — visualizes mission lifecycle (creation → approval → execution → completion) as horizontal colored bars with live-ticking elapsed timers for active missions; shows avg/fastest/slowest execution stats
+- **Occupancy heatmap** — intensity grid visualization of foot traffic patterns across 12 time buckets (5min each) × 4 occupancy tiers, with hover tooltips, color-coded intensity scale, and live updates
+- **Edge heartbeat monitor** (`HeartbeatMonitor`) — tracks API connectivity with graduated alert escalation (HEALTHY → DEGRADED at 3 failures → CRITICAL at 10 failures), recovery logging with downtime duration, uptime ratio tracking, and serializable state export
+- 21 new unit tests covering heartbeat alert escalation, downtime tracking, uptime ratios, serialization, and duration formatting
+- Heartbeat status logged alongside session stats every mock cycle
+
+### Changed
+- Health report now includes heartbeat state and uses version `v0.6.0`
+- `run_mock()` returns both session stats and heartbeat monitor state
+
+---
+
 ## [0.5.0] — 2026-09-25
 
 ### Added

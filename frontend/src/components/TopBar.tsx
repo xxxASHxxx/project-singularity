@@ -60,7 +60,7 @@ export default function TopBar({ apiOk, pendingCount = 0, notificationsEnabled =
           {' · '}
           {time.toLocaleTimeString('en-US', { hour12: false })}
         </span>
-        <span className="font-mono text-xs text-gray-700" title="Version">v0.5.0</span>
+        <span className="font-mono text-xs text-gray-700" title="Version">v0.6.0</span>
       </div>
     </div>
   );
