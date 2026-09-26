@@ -10,6 +10,7 @@ import AnalyticsPanel from './components/AnalyticsPanel';
 import KeyboardShortcutsOverlay, { useKeyboardShortcuts } from './components/KeyboardShortcutsOverlay';
 import CommandPalette from './components/CommandPalette';
 import ConnectionQualityIndicator from './components/ConnectionQualityIndicator';
+import MissionTimeline from './components/MissionTimeline';
 import type { Command } from './components/CommandPalette';
 import type { AgentMission } from './api/client';
 
@@ -245,6 +246,7 @@ export default function App() {
             <div ref={activityRef}>
               <AgentActivityFeed missions={missions} />
             </div>
+            <MissionTimeline />
           </div>
 
           {/* Right: missions */}
