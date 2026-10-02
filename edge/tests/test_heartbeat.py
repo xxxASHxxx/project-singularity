@@ -1,6 +1,6 @@
 """Tests for the HeartbeatMonitor module."""
-import sys
 import os
+import sys
 import time
 from unittest.mock import patch
 

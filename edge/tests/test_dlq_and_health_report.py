@@ -8,8 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from main import get_dlq_age_stats, purge_old_dlq_entries, preflight_health_check, generate_health_report
-
+from main import generate_health_report, get_dlq_age_stats, preflight_health_check, purge_old_dlq_entries
 
 # ── DLQ Age Stats ─────────────────────────────────────────────────────────────
 

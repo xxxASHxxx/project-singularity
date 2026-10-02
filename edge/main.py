@@ -330,9 +330,9 @@ def run_live(args, cfg: Dict[str, Any]):
 # Mock mode loop
 # ---------------------------------------------------------------------------
 def run_mock(args, cfg: Dict[str, Any]):
+    from heartbeat import HeartbeatMonitor
     from mock_data import MOCK_SEQUENCE, get_mock_sequence
     from telemetry_stats import TelemetrySessionStats
-    from heartbeat import HeartbeatMonitor
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
