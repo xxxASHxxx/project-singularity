@@ -20,13 +20,8 @@ from typing import Any, Dict, List, Optional
 import requests
 
 # ---------------------------------------------------------------------------
-# Logging setup
+# Logging setup (deferred — configured in main() via CLI args)
 # ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-    datefmt='%H:%M:%S',
-)
 log = logging.getLogger('edge')
 
 # ---------------------------------------------------------------------------
@@ -464,6 +459,8 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
 # Entry point
 # ---------------------------------------------------------------------------
 def main():
+    from log_config import setup_logging
+
     parser = argparse.ArgumentParser(description='Project Singularity Edge Node')
     parser.add_argument('--camera', type=int, default=0, help='Camera index (default: 0)')
     parser.add_argument('--mock', action='store_true', help='Replay canned mock sequence (no camera)')
@@ -475,7 +472,14 @@ def main():
     parser.add_argument('--health-report', action='store_true', help='Generate a full JSON health report and exit')
     parser.add_argument('--dlq-purge', type=int, metavar='HOURS', default=None,
                         help='Purge DLQ entries older than HOURS hours and exit')
+    parser.add_argument('--log-format', choices=['human', 'json'], default='human',
+                        help='Log output format: human-readable (default) or structured JSON')
+    parser.add_argument('--log-file', default=None, metavar='PATH',
+                        help='Write logs to a rotating file (always JSON format)')
     args = parser.parse_args()
+
+    # Initialize structured logging before any log output
+    setup_logging(fmt=args.log_format, log_file=args.log_file)
 
     if args.dlq_status:
         count = get_failed_payloads_count()
