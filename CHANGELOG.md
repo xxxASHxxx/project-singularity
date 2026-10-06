@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.7.0] — 2026-10-04
+
+### Added
+- **Anomaly detector** (`AnomalyDetector`) — z-score based spike detection on occupancy and fill-ratio telemetry streams using a configurable sliding window; includes linear regression trend analysis (declining/rising/stable), cold-start protection, directional zero-variance sentinels, and `AnomalyResult` dataclass with serialization
+- **Structured logging** (`log_config.py`) — dual-mode logging with `JSONFormatter` for production log aggregation (ELK, Datadog) and `ColoredFormatter` for human-readable dev output; `RotatingFileHandler` for disk-safe long-running deployments; JSON logs include whitelisted extra fields and full exception serialization
+- New CLI flags: `--log-format` (human|json), `--log-file PATH`
+- **CI: Python build matrix** — edge tests now run against Python 3.10, 3.11, and 3.12 in parallel
+- **CI: pytest coverage reporting** — coverage XML artifact uploaded for the primary Python version
+- **CI: Security scanning** — `pip-audit` for Python dependencies and `npm audit` for frontend, both advisory (won't block PRs on upstream vulns)
+- 37 new unit tests: 23 for anomaly detector, 14 for structured logging
+
+### Changed
+- Logging initialization deferred from module-level `basicConfig` to `setup_logging()` in `main()`, called after CLI arg parsing
+- CI edge-tests job now uses `strategy.matrix` with `fail-fast: false`
+- Health report version bumped to `v0.7.0`
+
 ## [0.6.0] — 2026-09-26
 
 ### Added

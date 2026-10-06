@@ -442,7 +442,7 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
     hb = HeartbeatMonitor()
 
     return {
-        'version': 'v0.6.0',
+        'version': 'v0.7.0',
         'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
         'system': {
             'python_version': platform.python_version(),
