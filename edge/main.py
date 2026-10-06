@@ -459,6 +459,7 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
     """Generate a comprehensive JSON health report for diagnostics."""
     from detectors import AnomalyDetector
     from heartbeat import HeartbeatMonitor
+    from log_config import get_log_config_summary
     health = preflight_health_check(api_url, max_attempts=3, timeout=timeout)
     dlq_stats = get_dlq_age_stats()
     hb = HeartbeatMonitor()
@@ -476,6 +477,36 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
         'heartbeat': hb.to_dict(),
         'anomaly_detector': ad.window_stats,
         'dlq': dlq_stats,
+        'logging': get_log_config_summary(fmt='human'),
+    }
+
+
+def run_diagnostics() -> Dict[str, Any]:
+    """Collect local subsystem state without hitting the network.
+
+    Useful for quick operator checks when the API might be unreachable.
+    """
+    from detectors import AnomalyDetector
+    from heartbeat import HeartbeatMonitor
+    from log_config import get_log_config_summary
+
+    dlq_stats = get_dlq_age_stats()
+    hb = HeartbeatMonitor()
+    ad = AnomalyDetector()
+
+    return {
+        'version': 'v0.7.0',
+        'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
+        'system': {
+            'python_version': platform.python_version(),
+            'platform': platform.platform(),
+            'hostname': platform.node(),
+        },
+        'dlq': dlq_stats,
+        'heartbeat': hb.to_dict(),
+        'anomaly_detector': ad.window_stats,
+        'logging': get_log_config_summary(),
+        'note': 'offline diagnostics — no API health check performed',
     }
 
 
@@ -500,6 +531,8 @@ def main():
                         help='Log output format: human-readable (default) or structured JSON')
     parser.add_argument('--log-file', default=None, metavar='PATH',
                         help='Write logs to a rotating file (always JSON format)')
+    parser.add_argument('--diagnostics', action='store_true',
+                        help='Print local subsystem diagnostics (no network) and exit')
     args = parser.parse_args()
 
     # Initialize structured logging before any log output
@@ -516,6 +549,11 @@ def main():
         args.api_url = os.environ.get('API_URL') or cfg.get('api_url', 'http://localhost:8080')
 
     log.info(f"API URL: {args.api_url}")
+
+    if args.diagnostics:
+        diag = run_diagnostics()
+        print(json.dumps(diag, indent=2))
+        return
 
     if args.health_report:
         report = generate_health_report(args.api_url)
