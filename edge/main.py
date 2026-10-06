@@ -248,7 +248,7 @@ def run_live(args, cfg: Dict[str, Any]):
     import cv2
     import numpy as np
     sys.path.insert(0, str(ROOT / 'edge'))
-    from detectors import PersonDetector, ShelfDetector
+    from detectors import AnomalyDetector, PersonDetector, ShelfDetector
 
     SHELF_BASELINE = ROOT / 'config' / 'shelf_baseline.jpg'
     if not SHELF_BASELINE.exists():
@@ -267,6 +267,10 @@ def run_live(args, cfg: Dict[str, Any]):
     person_detector = PersonDetector()
     shelf_detector = ShelfDetector(reference_frame, shelf_roi)
     debounce = OccupancyDebounce(surge_threshold)
+    anomaly = AnomalyDetector(
+        window_size=cfg.get('anomaly_window', 30),
+        z_threshold=cfg.get('anomaly_z_threshold', 2.0),
+    )
 
     log.info(f"Person detector backend: {person_detector.backend}")
     log.info(f"Shelf detector backend: {shelf_detector._backend}")
@@ -303,6 +307,12 @@ def run_live(args, cfg: Dict[str, Any]):
                     'lowStockFlag': low_stock_flag,
                 }
                 log.info(f"Telemetry: occupancy={occupancy} fill={fill_ratio:.1f}% surge={surge_flag} low_stock={low_stock_flag}")
+
+                # Run anomaly detection on the payload
+                anom = anomaly.ingest(payload)
+                if anom.has_anomaly:
+                    log.warning(f"ANOMALY DETECTED: {anom}")
+
                 post_telemetry(payload, args.api_url, timeout=timeout)
                 last_post = now
 
@@ -325,6 +335,7 @@ def run_live(args, cfg: Dict[str, Any]):
 # Mock mode loop
 # ---------------------------------------------------------------------------
 def run_mock(args, cfg: Dict[str, Any]):
+    from detectors import AnomalyDetector
     from heartbeat import HeartbeatMonitor
     from mock_data import MOCK_SEQUENCE, get_mock_sequence
     from telemetry_stats import TelemetrySessionStats
@@ -335,6 +346,10 @@ def run_mock(args, cfg: Dict[str, Any]):
     cycle_len = len(MOCK_SEQUENCE)
     stats = TelemetrySessionStats()
     heartbeat = HeartbeatMonitor()
+    anomaly = AnomalyDetector(
+        window_size=cfg.get('anomaly_window', 30),
+        z_threshold=cfg.get('anomaly_z_threshold', 2.0),
+    )
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
     log.info("Surge will fire at ~t=25s, low-stock at ~t=40s")
@@ -347,11 +362,17 @@ def run_mock(args, cfg: Dict[str, Any]):
             # Log periodic stats every cycle
             log.info(f"[STATS] {stats}")
             log.info(f"[HEARTBEAT] {heartbeat}")
+            log.info(f"[ANOMALY] {anomaly}")
         log.info(
             f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
             f"fill={payload['shelfFillRatio']}% "
             f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
         )
+        # Run anomaly detection before posting
+        anom = anomaly.ingest(payload)
+        if anom.has_anomaly:
+            log.warning(f"[ANOMALY] {anom}")
+
         result = post_telemetry(payload, args.api_url, timeout=timeout)
         if result is not None:
             payload_bytes = len(json.dumps(payload))
@@ -363,7 +384,7 @@ def run_mock(args, cfg: Dict[str, Any]):
         time.sleep(interval)
         sample_idx += 1
 
-    return stats, heartbeat
+    return stats, heartbeat, anomaly
 
 
 # ---------------------------------------------------------------------------
@@ -436,10 +457,12 @@ def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5
 
 def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
     """Generate a comprehensive JSON health report for diagnostics."""
+    from detectors import AnomalyDetector
     from heartbeat import HeartbeatMonitor
     health = preflight_health_check(api_url, max_attempts=3, timeout=timeout)
     dlq_stats = get_dlq_age_stats()
     hb = HeartbeatMonitor()
+    ad = AnomalyDetector()
 
     return {
         'version': 'v0.7.0',
@@ -451,6 +474,7 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
         },
         'api_health': health,
         'heartbeat': hb.to_dict(),
+        'anomaly_detector': ad.window_stats,
         'dlq': dlq_stats,
     }
 
