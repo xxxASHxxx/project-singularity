@@ -35,6 +35,9 @@ public class TelemetryEvent {
     @Column(name = "low_stock_flag", nullable = false)
     private Boolean lowStockFlag;
 
+    @Column(name = "anomaly_flag")
+    private Boolean anomalyFlag = false;
+
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 

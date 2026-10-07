@@ -312,6 +312,7 @@ def run_live(args, cfg: Dict[str, Any]):
                 anom = anomaly.ingest(payload)
                 if anom.has_anomaly:
                     log.warning(f"ANOMALY DETECTED: {anom}")
+                    payload['anomalyFlag'] = True
 
                 post_telemetry(payload, args.api_url, timeout=timeout)
                 last_post = now
@@ -372,6 +373,7 @@ def run_mock(args, cfg: Dict[str, Any]):
         anom = anomaly.ingest(payload)
         if anom.has_anomaly:
             log.warning(f"[ANOMALY] {anom}")
+            payload['anomalyFlag'] = True
 
         result = post_telemetry(payload, args.api_url, timeout=timeout)
         if result is not None:

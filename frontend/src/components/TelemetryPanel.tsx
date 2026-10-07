@@ -137,6 +137,20 @@ export default function TelemetryPanel() {
               ({events.length} buffered)
             </span>
           )}
+          {latest?.anomalyFlag && (
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono border font-bold"
+              style={{
+                background: 'rgba(139, 92, 246, 0.15)',
+                borderColor: '#8B5CF6',
+                color: '#C4B5FD',
+                boxShadow: '0 0 12px rgba(139, 92, 246, 0.3)',
+              }}
+              title="Statistical anomaly detected"
+            >
+              ⚠ ANOMALY
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

@@ -16,6 +16,7 @@ export interface TelemetryEvent {
   shelfFillRatio: number;
   surgeFlag: boolean;
   lowStockFlag: boolean;
+  anomalyFlag?: boolean;
 }
 
 export interface AgentMission {
