@@ -29,10 +29,12 @@ class AnomalyResult:
     occupancy_z_score: Optional[float] = None
     fill_z_score: Optional[float] = None
     occupancy_anomaly: bool = False
+    occupancy_drop_anomaly: bool = False
     fill_anomaly: bool = False
     trend_direction: Optional[str] = None  # 'declining', 'rising', 'stable'
     trend_slope: Optional[float] = None
     timestamp: Optional[str] = None
+    confidence_score: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to a JSON-safe dictionary."""
@@ -41,21 +43,29 @@ class AnomalyResult:
             'occupancy_z_score': self.occupancy_z_score,
             'fill_z_score': self.fill_z_score,
             'occupancy_anomaly': self.occupancy_anomaly,
+            'occupancy_drop_anomaly': self.occupancy_drop_anomaly,
             'fill_anomaly': self.fill_anomaly,
             'trend_direction': self.trend_direction,
             'trend_slope': self.trend_slope,
             'timestamp': self.timestamp,
+            'confidence_score': round(self.confidence_score, 3),
         }
 
     def __str__(self) -> str:
         parts = []
         if self.occupancy_anomaly:
             parts.append(f"occupancy_z={self.occupancy_z_score:+.2f}")
+        if self.occupancy_drop_anomaly:
+            parts.append(f"occupancy_drop_z={self.occupancy_z_score:+.2f}")
         if self.fill_anomaly:
             parts.append(f"fill_z={self.fill_z_score:+.2f}")
         if self.trend_direction and self.trend_direction != 'stable':
             parts.append(f"trend={self.trend_direction}(slope={self.trend_slope:.3f})")
-        return f"Anomaly[{', '.join(parts)}]" if parts else "Anomaly[none]"
+        
+        base = f"Anomaly[{', '.join(parts)}]" if parts else "Anomaly[none]"
+        if self.has_anomaly:
+            base += f" (conf={self.confidence_score:.2f})"
+        return base
 
 
 class AnomalyDetector:
@@ -82,6 +92,7 @@ class AnomalyDetector:
         z_threshold: float = 2.0,
         min_samples: int = 5,
         trend_decline_threshold: float = -1.0,
+        cooldown_samples: int = 5,
     ):
         if window_size < 3:
             raise ValueError("window_size must be at least 3")
@@ -89,11 +100,14 @@ class AnomalyDetector:
             raise ValueError("z_threshold must be positive")
         if min_samples < 2:
             raise ValueError("min_samples must be at least 2")
+        if cooldown_samples < 0:
+            raise ValueError("cooldown_samples must be non-negative")
 
         self.window_size = window_size
         self.z_threshold = z_threshold
         self.min_samples = min_samples
         self.trend_decline_threshold = trend_decline_threshold
+        self.cooldown_samples = cooldown_samples
 
         self._occupancy_window: deque = deque(maxlen=window_size)
         self._fill_window: deque = deque(maxlen=window_size)
@@ -103,6 +117,7 @@ class AnomalyDetector:
         self.total_anomalies: int = 0
         self._anomaly_timestamps: List[str] = []
         self._start_time: float = time.time()
+        self._samples_since_last_anomaly: int = cooldown_samples
 
     def ingest(self, payload: Dict[str, Any]) -> AnomalyResult:
         """Process a telemetry payload and return anomaly detection result.
@@ -128,9 +143,12 @@ class AnomalyDetector:
             result.occupancy_z_score = round(occ_z, 3) if occ_z is not None else None
             result.fill_z_score = round(fill_z, 3) if fill_z is not None else None
 
-            # Flag anomalies: occupancy spike UP or fill drop DOWN
-            if occ_z is not None and occ_z > self.z_threshold:
-                result.occupancy_anomaly = True
+            # Flag anomalies: occupancy spike UP/DOWN or fill drop DOWN
+            if occ_z is not None:
+                if occ_z > self.z_threshold:
+                    result.occupancy_anomaly = True
+                elif occ_z < -self.z_threshold:
+                    result.occupancy_drop_anomaly = True
             if fill_z is not None and fill_z < -self.z_threshold:
                 result.fill_anomaly = True
 
@@ -151,11 +169,23 @@ class AnomalyDetector:
         self.total_ingested += 1
 
         # Determine overall anomaly flag
-        result.has_anomaly = result.occupancy_anomaly or result.fill_anomaly
-        if result.has_anomaly:
-            self.total_anomalies += 1
-            if timestamp:
-                self._anomaly_timestamps.append(timestamp)
+        raw_has_anomaly = result.occupancy_anomaly or result.occupancy_drop_anomaly or result.fill_anomaly
+        if raw_has_anomaly:
+            z_scores = [abs(z) for z in (result.occupancy_z_score, result.fill_z_score) if z is not None]
+            max_z = max(z_scores) if z_scores else 0
+            result.confidence_score = min(1.0, (max_z - self.z_threshold) / self.z_threshold) if max_z > self.z_threshold else 0.0
+
+            if self._samples_since_last_anomaly >= self.cooldown_samples:
+                result.has_anomaly = True
+                self.total_anomalies += 1
+                self._samples_since_last_anomaly = 0
+                if timestamp:
+                    self._anomaly_timestamps.append(timestamp)
+            else:
+                result.has_anomaly = False
+                self._samples_since_last_anomaly += 1
+        else:
+            self._samples_since_last_anomaly += 1
 
         return result
 
@@ -244,6 +274,7 @@ class AnomalyDetector:
         self.total_anomalies = 0
         self._anomaly_timestamps.clear()
         self._start_time = time.time()
+        self._samples_since_last_anomaly = self.cooldown_samples
 
     def __str__(self) -> str:
         return (

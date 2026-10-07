@@ -27,8 +27,8 @@ MOCK_SEQUENCE = [
     (3, 12.0),
     (4, 14.0),
     (5, 16.0),
-    (4, 18.0),
-    (3, 20.0),
+    (0, 18.0),   # sudden drop from 5 to 0 -> triggers occupancy drop anomaly
+    (0, 20.0),
     (2, 25.0),
     (1, 30.0),
 ]

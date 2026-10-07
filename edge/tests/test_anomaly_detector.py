@@ -95,6 +95,20 @@ def test_fill_drop_detected():
     assert result.fill_z_score < -2.0
 
 
+def test_occupancy_drop_detected():
+    """A sudden occupancy drop should be flagged."""
+    d = AnomalyDetector(window_size=10, z_threshold=2.0, min_samples=5)
+
+    for _ in range(8):
+        d.ingest({'zoneOccupancyCount': 10, 'shelfFillRatio': 85.0})
+
+    result = d.ingest({'zoneOccupancyCount': 0, 'shelfFillRatio': 85.0})
+    assert result.occupancy_drop_anomaly is True
+    assert result.has_anomaly is True
+    assert result.occupancy_z_score is not None
+    assert result.occupancy_z_score < -2.0
+
+
 def test_normal_variation_not_flagged():
     """Small natural fluctuations should not be flagged."""
     d = AnomalyDetector(window_size=10, z_threshold=2.0, min_samples=5)
@@ -122,6 +136,64 @@ def test_fill_increase_not_anomalous():
     # Fill ratio jumps up (restocked) — z_score is positive, not negative
     result = d.ingest({'zoneOccupancyCount': 2, 'shelfFillRatio': 95.0})
     assert result.fill_anomaly is False
+
+
+def test_cooldown_suppresses_rapid_anomalies():
+    """Cooldown should prevent consecutive anomalies from firing."""
+    d = AnomalyDetector(window_size=10, z_threshold=2.0, min_samples=5, cooldown_samples=3)
+
+    for _ in range(8):
+        d.ingest({'zoneOccupancyCount': 2, 'shelfFillRatio': 80.0})
+
+    # First spike fires anomaly
+    result1 = d.ingest({'zoneOccupancyCount': 10, 'shelfFillRatio': 80.0})
+    assert result1.has_anomaly is True
+    assert result1.occupancy_anomaly is True
+
+    # Second consecutive spike suppressed by cooldown
+    result2 = d.ingest({'zoneOccupancyCount': 10, 'shelfFillRatio': 80.0})
+    assert result2.has_anomaly is False
+    assert result2.occupancy_anomaly is True  # The raw flag is still true, but has_anomaly is False
+
+    # Third spike suppressed
+    result3 = d.ingest({'zoneOccupancyCount': 10, 'shelfFillRatio': 80.0})
+    assert result3.has_anomaly is False
+
+    # Fourth spike suppressed
+    result4 = d.ingest({'zoneOccupancyCount': 10, 'shelfFillRatio': 80.0})
+    assert result4.has_anomaly is False
+
+    # Fifth spike fires anomaly because cooldown (3) is met
+    result5 = d.ingest({'zoneOccupancyCount': 100, 'shelfFillRatio': 80.0})
+    assert result5.has_anomaly is True
+
+
+def test_confidence_score_scaling():
+    """Confidence score scales from 0.0 to 1.0 based on z-score distance from threshold."""
+    d = AnomalyDetector(window_size=10, z_threshold=2.0, min_samples=5)
+
+    for _ in range(8):
+        d.ingest({'zoneOccupancyCount': 2, 'shelfFillRatio': 80.0})
+
+    # Massive spike (> 2x threshold) should cap at 1.0 confidence
+    result1 = d.ingest({'zoneOccupancyCount': 100, 'shelfFillRatio': 80.0})
+    assert result1.has_anomaly is True
+    assert result1.confidence_score == 1.0
+
+    # Mild spike (just over threshold) should have low confidence
+    # Need to reset state and provide varying data so stddev > 0
+    d.reset()
+    varying_readings = [
+        (2, 80.0), (3, 80.0), (2, 80.0), (4, 80.0),
+        (2, 80.0), (3, 80.0), (2, 80.0), (3, 80.0)
+    ]
+    for occ, fill in varying_readings:
+        d.ingest({'zoneOccupancyCount': occ, 'shelfFillRatio': fill})
+    
+    # Send a small spike (should result in z-score < 4.0 but > 2.0)
+    result2 = d.ingest({'zoneOccupancyCount': 5, 'shelfFillRatio': 80.0})
+    if result2.has_anomaly:
+        assert 0.0 < result2.confidence_score < 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +246,7 @@ def test_rising_trend():
 # ---------------------------------------------------------------------------
 
 def test_anomaly_rate():
-    d = AnomalyDetector(window_size=10, z_threshold=2.0, min_samples=5)
+    d = AnomalyDetector(window_size=10, z_threshold=2.0, min_samples=5, cooldown_samples=0)
 
     # 8 normal readings
     for _ in range(8):
