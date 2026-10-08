@@ -93,6 +93,7 @@ class AnomalyDetector:
         min_samples: int = 5,
         trend_decline_threshold: float = -1.0,
         cooldown_samples: int = 5,
+        confidence_threshold: float = 0.5,
     ):
         if window_size < 3:
             raise ValueError("window_size must be at least 3")
@@ -102,12 +103,15 @@ class AnomalyDetector:
             raise ValueError("min_samples must be at least 2")
         if cooldown_samples < 0:
             raise ValueError("cooldown_samples must be non-negative")
+        if not (0.0 <= confidence_threshold <= 1.0):
+            raise ValueError("confidence_threshold must be between 0.0 and 1.0")
 
         self.window_size = window_size
         self.z_threshold = z_threshold
         self.min_samples = min_samples
         self.trend_decline_threshold = trend_decline_threshold
         self.cooldown_samples = cooldown_samples
+        self.confidence_threshold = confidence_threshold
 
         self._occupancy_window: deque = deque(maxlen=window_size)
         self._fill_window: deque = deque(maxlen=window_size)
@@ -175,7 +179,7 @@ class AnomalyDetector:
             max_z = max(z_scores) if z_scores else 0
             result.confidence_score = min(1.0, (max_z - self.z_threshold) / self.z_threshold) if max_z > self.z_threshold else 0.0
 
-            if self._samples_since_last_anomaly >= self.cooldown_samples:
+            if self._samples_since_last_anomaly >= self.cooldown_samples and result.confidence_score >= self.confidence_threshold:
                 result.has_anomaly = True
                 self.total_anomalies += 1
                 self._samples_since_last_anomaly = 0
