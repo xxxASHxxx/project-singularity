@@ -38,6 +38,15 @@ public class TelemetryEvent {
     @Column(name = "anomaly_flag")
     private Boolean anomalyFlag = false;
 
+    @Column(name = "anomaly_confidence")
+    private Double anomalyConfidence;
+
+    @Column(name = "anomaly_occupancy_z")
+    private Double anomalyOccupancyZ;
+
+    @Column(name = "anomaly_fill_z")
+    private Double anomalyFillZ;
+
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 

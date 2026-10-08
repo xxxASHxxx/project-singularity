@@ -27,4 +27,12 @@ public class TelemetryRequest {
 
     @NotNull
     private Boolean lowStockFlag;
+
+    private Boolean anomalyFlag;
+    
+    private Double anomalyConfidence;
+    
+    private Double anomalyOccupancyZ;
+    
+    private Double anomalyFillZ;
 }

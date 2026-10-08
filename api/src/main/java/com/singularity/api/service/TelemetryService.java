@@ -59,6 +59,10 @@ public class TelemetryService {
         event.setShelfFillRatio(req.getShelfFillRatio());
         event.setSurgeFlag(req.getSurgeFlag());
         event.setLowStockFlag(req.getLowStockFlag());
+        event.setAnomalyFlag(Boolean.TRUE.equals(req.getAnomalyFlag()));
+        event.setAnomalyConfidence(req.getAnomalyConfidence());
+        event.setAnomalyOccupancyZ(req.getAnomalyOccupancyZ());
+        event.setAnomalyFillZ(req.getAnomalyFillZ());
         event = telemetryRepo.save(event);
 
         List<Long> missionIds = new ArrayList<>();
