@@ -270,6 +270,7 @@ def run_live(args, cfg: Dict[str, Any]):
     anomaly = AnomalyDetector(
         window_size=cfg.get('anomaly_window', 30),
         z_threshold=cfg.get('anomaly_z_threshold', 2.0),
+        confidence_threshold=cfg.get('anomaly_confidence_threshold', 0.5),
     )
 
     log.info(f"Person detector backend: {person_detector.backend}")
@@ -354,6 +355,7 @@ def run_mock(args, cfg: Dict[str, Any]):
     anomaly = AnomalyDetector(
         window_size=cfg.get('anomaly_window', 30),
         z_threshold=cfg.get('anomaly_z_threshold', 2.0),
+        confidence_threshold=cfg.get('anomaly_confidence_threshold', 0.5),
     )
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
@@ -543,6 +545,12 @@ def main():
                         help='Write logs to a rotating file (always JSON format)')
     parser.add_argument('--diagnostics', action='store_true',
                         help='Print local subsystem diagnostics (no network) and exit')
+    parser.add_argument('--anomaly-z', type=float, default=None,
+                        help='Override anomaly detector Z-score threshold')
+    parser.add_argument('--anomaly-conf', type=float, default=None,
+                        help='Override anomaly detector confidence threshold')
+    parser.add_argument('--anomaly-window', type=int, default=None,
+                        help='Override anomaly detector sliding window size')
     args = parser.parse_args()
 
     # Initialize structured logging before any log output
@@ -557,6 +565,13 @@ def main():
     if args.api_url is None:
         # Check env var first (set by docker-compose), then config file, then default
         args.api_url = os.environ.get('API_URL') or cfg.get('api_url', 'http://localhost:8080')
+
+    if args.anomaly_z is not None:
+        cfg['anomaly_z_threshold'] = args.anomaly_z
+    if args.anomaly_conf is not None:
+        cfg['anomaly_confidence_threshold'] = args.anomaly_conf
+    if args.anomaly_window is not None:
+        cfg['anomaly_window'] = args.anomaly_window
 
     log.info(f"API URL: {args.api_url}")
 
