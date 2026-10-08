@@ -308,11 +308,15 @@ def run_live(args, cfg: Dict[str, Any]):
                 }
                 log.info(f"Telemetry: occupancy={occupancy} fill={fill_ratio:.1f}% surge={surge_flag} low_stock={low_stock_flag}")
 
-                # Run anomaly detection on the payload
                 anom = anomaly.ingest(payload)
                 if anom.has_anomaly:
                     log.warning(f"ANOMALY DETECTED: {anom}")
                     payload['anomalyFlag'] = True
+                    payload['anomalyConfidence'] = round(anom.confidence_score, 3)
+                    if anom.occupancy_z_score is not None:
+                        payload['anomalyOccupancyZ'] = anom.occupancy_z_score
+                    if anom.fill_z_score is not None:
+                        payload['anomalyFillZ'] = anom.fill_z_score
 
                 post_telemetry(payload, args.api_url, timeout=timeout)
                 last_post = now
@@ -369,11 +373,15 @@ def run_mock(args, cfg: Dict[str, Any]):
             f"fill={payload['shelfFillRatio']}% "
             f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
         )
-        # Run anomaly detection before posting
         anom = anomaly.ingest(payload)
         if anom.has_anomaly:
             log.warning(f"[ANOMALY] {anom}")
             payload['anomalyFlag'] = True
+            payload['anomalyConfidence'] = round(anom.confidence_score, 3)
+            if anom.occupancy_z_score is not None:
+                payload['anomalyOccupancyZ'] = anom.occupancy_z_score
+            if anom.fill_z_score is not None:
+                payload['anomalyFillZ'] = anom.fill_z_score
 
         result = post_telemetry(payload, args.api_url, timeout=timeout)
         if result is not None:
