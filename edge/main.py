@@ -271,6 +271,7 @@ def run_live(args, cfg: Dict[str, Any]):
         window_size=cfg.get('anomaly_window', 30),
         z_threshold=cfg.get('anomaly_z_threshold', 2.0),
         confidence_threshold=cfg.get('anomaly_confidence_threshold', 0.5),
+        min_samples=cfg.get('anomaly_min_samples', 5),
     )
 
     log.info(f"Person detector backend: {person_detector.backend}")
@@ -356,6 +357,7 @@ def run_mock(args, cfg: Dict[str, Any]):
         window_size=cfg.get('anomaly_window', 30),
         z_threshold=cfg.get('anomaly_z_threshold', 2.0),
         confidence_threshold=cfg.get('anomaly_confidence_threshold', 0.5),
+        min_samples=cfg.get('anomaly_min_samples', 5),
     )
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
@@ -551,6 +553,8 @@ def main():
                         help='Override anomaly detector confidence threshold')
     parser.add_argument('--anomaly-window', type=int, default=None,
                         help='Override anomaly detector sliding window size')
+    parser.add_argument('--anomaly-min-samples', type=int, default=None,
+                        help='Override anomaly detector min samples')
     args = parser.parse_args()
 
     # Initialize structured logging before any log output
@@ -572,6 +576,8 @@ def main():
         cfg['anomaly_confidence_threshold'] = args.anomaly_conf
     if args.anomaly_window is not None:
         cfg['anomaly_window'] = args.anomaly_window
+    if args.anomaly_min_samples is not None:
+        cfg['anomaly_min_samples'] = args.anomaly_min_samples
 
     log.info(f"API URL: {args.api_url}")
 
