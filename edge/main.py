@@ -563,6 +563,10 @@ def main():
                         help='Override anomaly detector trend decline threshold')
     parser.add_argument('--anomaly-cooldown', type=int, default=None,
                         help='Override anomaly detector cooldown samples')
+    parser.add_argument('--surge-threshold', type=int, default=None,
+                        help='Override surge detection occupancy threshold')
+    parser.add_argument('--low-stock-threshold', type=int, default=None,
+                        help='Override low stock detection threshold percentage')
     args = parser.parse_args()
 
     # Initialize structured logging before any log output
@@ -590,6 +594,10 @@ def main():
         cfg['anomaly_trend_decline_threshold'] = args.anomaly_trend_decline
     if args.anomaly_cooldown is not None:
         cfg['anomaly_cooldown_samples'] = args.anomaly_cooldown
+    if args.surge_threshold is not None:
+        cfg['surge_threshold'] = args.surge_threshold
+    if args.low_stock_threshold is not None:
+        cfg['low_stock_threshold'] = args.low_stock_threshold
 
     log.info(f"API URL: {args.api_url}")
 
