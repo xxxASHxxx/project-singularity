@@ -61,7 +61,7 @@ class AnomalyResult:
             parts.append(f"fill_z={self.fill_z_score:+.2f}")
         if self.trend_direction and self.trend_direction != 'stable':
             parts.append(f"trend={self.trend_direction}(slope={self.trend_slope:.3f})")
-        
+
         base = f"Anomaly[{', '.join(parts)}]" if parts else "Anomaly[none]"
         if self.has_anomaly:
             base += f" (conf={self.confidence_score:.2f})"

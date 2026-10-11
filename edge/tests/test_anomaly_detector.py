@@ -7,7 +7,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from detectors.anomaly_detector import AnomalyDetector, AnomalyResult
 
-
 # ---------------------------------------------------------------------------
 # Construction & validation
 # ---------------------------------------------------------------------------
@@ -189,7 +188,7 @@ def test_confidence_score_scaling():
     ]
     for occ, fill in varying_readings:
         d.ingest({'zoneOccupancyCount': occ, 'shelfFillRatio': fill})
-    
+
     # Send a small spike (should result in z-score < 4.0 but > 2.0)
     result2 = d.ingest({'zoneOccupancyCount': 5, 'shelfFillRatio': 80.0})
     if result2.has_anomaly:

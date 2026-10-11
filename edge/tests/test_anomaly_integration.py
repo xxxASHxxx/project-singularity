@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from detectors import AnomalyDetector, AnomalyResult
 from main import run_diagnostics
 
-
 # ── AnomalyDetector pipeline integration ─────────────────────────────────────
 
 class TestAnomalyInPipeline:
@@ -120,6 +119,7 @@ class TestAnomalyInPipeline:
 
         for _ in range(20):
             result = detector.ingest(self._make_payload(3, 75.0))
+            assert not result.has_anomaly
 
         assert detector.total_anomalies == 0
 
