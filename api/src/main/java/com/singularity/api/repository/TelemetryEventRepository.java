@@ -27,6 +27,12 @@ public interface TelemetryEventRepository extends JpaRepository<TelemetryEvent, 
            nativeQuery = true)
     long countLowStockEventsLast24h();
 
+    /** Count of anomaly events recorded in the last 24 hours. */
+    @Query(value = "SELECT COUNT(*) FROM telemetry_events " +
+                   "WHERE anomaly_flag = TRUE AND recorded_at >= NOW() - INTERVAL 24 HOUR",
+           nativeQuery = true)
+    long countAnomalyEventsLast24h();
+
     /** Rolling average zone occupancy count across all telemetry events. */
     @Query(value = "SELECT AVG(zone_occupancy_count) FROM telemetry_events",
            nativeQuery = true)

@@ -64,6 +64,9 @@ public class AnalyticsDto {
         /** Distinct low-stock events in the past 24 hours. */
         private long lowStockEventsLast24h;
 
+        /** Distinct anomaly events in the past 24 hours. */
+        private long anomalyEventsLast24h;
+
         /** Rolling average zone occupancy across all recorded events. */
         private Double avgOccupancy;
 

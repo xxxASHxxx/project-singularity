@@ -75,6 +75,7 @@ public class AnalyticsService {
         long totalEvents        = telemetryRepo.count();
         long surgeEvents24h     = telemetryRepo.countSurgeEventsLast24h();
         long lowStockEvents24h  = telemetryRepo.countLowStockEventsLast24h();
+        long anomalyEvents24h   = telemetryRepo.countAnomalyEventsLast24h();
         Double avgOccupancy     = round(telemetryRepo.avgOccupancy());
         Double avgShelfFill     = round(telemetryRepo.avgShelfFill());
 
@@ -82,6 +83,7 @@ public class AnalyticsService {
                 .totalEvents(totalEvents)
                 .surgeEventsLast24h(surgeEvents24h)
                 .lowStockEventsLast24h(lowStockEvents24h)
+                .anomalyEventsLast24h(anomalyEvents24h)
                 .avgOccupancy(avgOccupancy)
                 .avgShelfFill(avgShelfFill)
                 .build();
