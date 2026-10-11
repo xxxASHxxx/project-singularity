@@ -17,6 +17,9 @@ export interface TelemetryEvent {
   surgeFlag: boolean;
   lowStockFlag: boolean;
   anomalyFlag?: boolean;
+  anomalyConfidence?: number | null;
+  anomalyOccupancyZ?: number | null;
+  anomalyFillZ?: number | null;
 }
 
 export interface AgentMission {
@@ -83,6 +86,7 @@ export interface AnalyticsSnapshot {
     totalEvents: number;
     surgeEventsLast24h: number;
     lowStockEventsLast24h: number;
+    anomalyEventsLast24h?: number;
     avgOccupancy: number | null;
     avgShelfFill: number | null;
   };

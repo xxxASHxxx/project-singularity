@@ -91,7 +91,7 @@ export default function TelemetryPanel() {
 
   const handleExportCSV = () => {
     if (!events.length) return;
-    const headers = ['RecordedAt', 'DeviceId', 'ZoneOccupancyCount', 'ShelfFillRatio', 'SurgeFlag', 'LowStockFlag'];
+    const headers = ['RecordedAt', 'DeviceId', 'ZoneOccupancyCount', 'ShelfFillRatio', 'SurgeFlag', 'LowStockFlag', 'AnomalyFlag', 'AnomalyConfidence', 'AnomalyOccupancyZ', 'AnomalyFillZ'];
     const rows = events.map(e => [
       `"${e.recordedAt}"`,
       `"${e.deviceId}"`,
@@ -99,6 +99,10 @@ export default function TelemetryPanel() {
       e.shelfFillRatio.toFixed(2),
       e.surgeFlag,
       e.lowStockFlag,
+      e.anomalyFlag ?? false,
+      e.anomalyConfidence != null ? e.anomalyConfidence.toFixed(3) : '',
+      e.anomalyOccupancyZ != null ? e.anomalyOccupancyZ.toFixed(2) : '',
+      e.anomalyFillZ != null ? e.anomalyFillZ.toFixed(2) : '',
     ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -146,9 +150,18 @@ export default function TelemetryPanel() {
                 color: '#C4B5FD',
                 boxShadow: '0 0 12px rgba(139, 92, 246, 0.3)',
               }}
-              title="Statistical anomaly detected"
+              title={`Statistical anomaly detected${
+                latest.anomalyConfidence != null ? ` (${Math.round(latest.anomalyConfidence * 100)}% conf` : ''
+              }${latest.anomalyOccupancyZ != null ? `, occ Z: ${latest.anomalyOccupancyZ > 0 ? '+' : ''}${latest.anomalyOccupancyZ.toFixed(2)}` : ''}${
+                latest.anomalyFillZ != null ? `, fill Z: ${latest.anomalyFillZ > 0 ? '+' : ''}${latest.anomalyFillZ.toFixed(2)}` : ''
+              }${latest.anomalyConfidence != null ? ')' : ''}`}
             >
               ⚠ ANOMALY
+              {latest.anomalyConfidence != null && (
+                <span className="text-[10px] font-normal opacity-85">
+                  ({Math.round(latest.anomalyConfidence * 100)}%)
+                </span>
+              )}
             </span>
           )}
         </div>

@@ -22,7 +22,7 @@ interface StatCardProps {
   label: string;
   value: string;
   sub?: string;
-  accent?: 'default' | 'green' | 'red' | 'amber';
+  accent?: 'default' | 'green' | 'red' | 'amber' | 'purple';
 }
 
 function StatCard({ label, value, sub, accent = 'default' }: StatCardProps) {
@@ -30,6 +30,7 @@ function StatCard({ label, value, sub, accent = 'default' }: StatCardProps) {
     accent === 'green'  ? '#22C55E' :
     accent === 'red'    ? '#FF3B30' :
     accent === 'amber'  ? '#FF8A00' :
+    accent === 'purple' ? '#A78BFA' :
     '#E8E8E8';
 
   return (
@@ -160,6 +161,12 @@ export default function AnalyticsPanel() {
           value={telemetry.surgeEventsLast24h.toString()}
           sub={`${telemetry.lowStockEventsLast24h} low-stock events`}
           accent={telemetry.surgeEventsLast24h > 5 ? 'amber' : 'default'}
+        />
+        <StatCard
+          label="Anomalies (24h)"
+          value={(telemetry.anomalyEventsLast24h ?? 0).toString()}
+          sub="statistical outliers"
+          accent={(telemetry.anomalyEventsLast24h ?? 0) > 0 ? 'purple' : 'default'}
         />
         <StatCard
           label="Avg Occupancy"

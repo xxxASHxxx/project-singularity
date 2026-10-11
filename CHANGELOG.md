@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Database migration V7** (`V7__add_anomaly_telemetry_fields.sql`) — adds `anomaly_flag`, `anomaly_confidence`, `anomaly_occupancy_z`, and `anomaly_fill_z` columns to `telemetry_events` table along with compound index `idx_telemetry_anomaly (anomaly_flag, recorded_at)`
+- **Anomaly analytics aggregation** (`AnalyticsService` / `AnalyticsDto`) — added `anomalyEventsLast24h` metric to `GET /api/v1/analytics` response, tracking statistical outliers over the past 24 hours
+- **System Analytics anomaly card** — new purple accent metric card in `AnalyticsPanel` showing real-time 24h anomaly frequency
+- **Anomaly desktop notifications** (`useAlertNotifications`) — system alerts with 30s debounce whenever statistical anomalies are flagged by the edge node
+- **Enhanced telemetry anomaly badge & CSV export** — `TelemetryPanel` now displays detailed confidence percentage and z-scores on hover, and includes full anomaly metrics (`AnomalyFlag`, `AnomalyConfidence`, `AnomalyOccupancyZ`, `AnomalyFillZ`) in exported CSVs
+- **Mock mode threshold and noise configuration** — `get_mock_sequence()` in `edge/mock_data.py` now respects custom `surge_threshold` and `low_stock_threshold`; added `--mock-jitter` / `--jitter` CLI flag for edge node simulation
+
+### Fixed
+- Fixed Python ruff lint formatting issues in `anomaly_detector.py`, `test_anomaly_detector.py`, `test_anomaly_integration.py`, and `test_log_config.py`
+- Fixed unused variable warning in integration test assertions
+
 ---
 
 ## [0.7.0] — 2026-10-04

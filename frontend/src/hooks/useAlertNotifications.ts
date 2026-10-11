@@ -7,14 +7,16 @@ interface UseAlertNotificationsOptions {
 }
 
 /**
- * Fires desktop notifications when surge or low-stock alerts trigger.
+ * Fires desktop notifications when surge, low-stock, or anomaly alerts trigger.
  * Debounces to prevent notification spam — minimum 30s between same-type alerts.
  */
 export function useAlertNotifications({ enabled, latestEvent }: UseAlertNotificationsOptions) {
   const lastSurgeNotif = useRef(0);
   const lastLowStockNotif = useRef(0);
+  const lastAnomalyNotif = useRef(0);
   const prevSurge = useRef(false);
   const prevLowStock = useRef(false);
+  const prevAnomaly = useRef(false);
 
   useEffect(() => {
     if (!enabled || !latestEvent) return;
@@ -45,7 +47,20 @@ export function useAlertNotifications({ enabled, latestEvent }: UseAlertNotifica
       lastLowStockNotif.current = now;
     }
 
+    // Anomaly alert — fire only on rising edge
+    if (latestEvent.anomalyFlag && !prevAnomaly.current && now - lastAnomalyNotif.current > COOLDOWN_MS) {
+      const conf = latestEvent.anomalyConfidence != null ? ` (${Math.round(latestEvent.anomalyConfidence * 100)}% conf)` : '';
+      new Notification('🚨 Statistical Anomaly — Project Singularity', {
+        body: `Anomalous pattern detected at ${latestEvent.deviceId}${conf}`,
+        icon: '/favicon.ico',
+        tag: 'singularity-anomaly',
+        requireInteraction: false,
+      });
+      lastAnomalyNotif.current = now;
+    }
+
     prevSurge.current = latestEvent.surgeFlag;
     prevLowStock.current = latestEvent.lowStockFlag;
+    prevAnomaly.current = !!latestEvent.anomalyFlag;
   }, [enabled, latestEvent]);
 }
