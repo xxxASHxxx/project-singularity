@@ -77,3 +77,25 @@ def test_validate_telemetry_payload_invalid_cases():
     invalid_fill = valid.copy()
     invalid_fill["shelfFillRatio"] = 105.0
     assert validate_telemetry_payload(invalid_fill) is False
+
+
+def test_mock_generator_custom_thresholds():
+    gen = get_mock_sequence(surge_threshold=6, low_stock_threshold=15.0)
+    payloads = [next(gen) for _ in range(12)]
+
+    # At sample 3 (occupancy=4), default would be surge, but threshold=6 prevents it
+    assert payloads[3]["zoneOccupancyCount"] == 4
+    assert payloads[3]["surgeFlag"] is False
+
+    # At sample 5 (occupancy=6), surge threshold 6 is reached
+    assert payloads[5]["zoneOccupancyCount"] == 6
+    assert payloads[5]["surgeFlag"] is True
+
+    # At sample 8 (fill=18.0), default would be low stock, but threshold=15 prevents it
+    assert payloads[8]["shelfFillRatio"] == 18.0
+    assert payloads[8]["lowStockFlag"] is False
+
+    # At sample 9 (fill=15.0), low stock threshold 15 is reached
+    assert payloads[9]["shelfFillRatio"] == 15.0
+    assert payloads[9]["lowStockFlag"] is True
+

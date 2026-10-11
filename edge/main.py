@@ -351,7 +351,12 @@ def run_mock(args, cfg: Dict[str, Any]):
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
-    sequence = get_mock_sequence(device_id)
+    sequence = get_mock_sequence(
+        device_id=device_id,
+        jitter=getattr(args, 'mock_jitter', False),
+        surge_threshold=cfg.get('surge_threshold', 4),
+        low_stock_threshold=cfg.get('low_stock_threshold', 20.0),
+    )
     cycle_len = len(MOCK_SEQUENCE)
     stats = TelemetrySessionStats()
     heartbeat = HeartbeatMonitor()
@@ -567,6 +572,8 @@ def main():
                         help='Override surge detection occupancy threshold')
     parser.add_argument('--low-stock-threshold', type=int, default=None,
                         help='Override low stock detection threshold percentage')
+    parser.add_argument('--mock-jitter', '--jitter', action='store_true',
+                        help='Enable realistic sensor noise in mock mode')
     args = parser.parse_args()
 
     # Initialize structured logging before any log output

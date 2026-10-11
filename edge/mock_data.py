@@ -63,7 +63,9 @@ def validate_telemetry_payload(payload: Dict[str, Any]) -> bool:
 def get_mock_sequence(
     device_id: str = "edge-node-01",
     jitter: bool = False,
-    seed: Optional[int] = None
+    seed: Optional[int] = None,
+    surge_threshold: int = 4,
+    low_stock_threshold: float = 20.0,
 ) -> Iterator[Dict[str, Any]]:
     """Infinite iterator that cycles through the mock sequence.
 
@@ -71,6 +73,8 @@ def get_mock_sequence(
         device_id: Identifier for the edge sensor node.
         jitter: If True, adds minor realistic sub-percent sensor fluctuations.
         seed: Optional RNG seed for deterministic jitter testing.
+        surge_threshold: Occupancy count threshold to flag a surge event.
+        low_stock_threshold: Shelf fill ratio percentage threshold to flag low stock.
     """
     rng = random.Random(seed) if seed is not None else random.Random()
     idx = 0
@@ -82,8 +86,8 @@ def get_mock_sequence(
             noise = round(rng.uniform(-0.4, 0.4), 2)
             fill = max(0.0, min(100.0, round(fill + noise, 2)))
 
-        surge_flag = occupancy >= 4
-        low_stock_flag = fill <= 20.0
+        surge_flag = occupancy >= surge_threshold
+        low_stock_flag = fill <= low_stock_threshold
 
         yield {
             "deviceId": device_id,
