@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from telemetry_stats import TelemetrySessionStats
 
 
-def _make_payload(occ=3, fill=50.0, surge=False, low_stock=False):
+def _make_payload(occ=3, fill=50.0, surge=False, low_stock=False, anomaly=False):
     return {
         'deviceId': 'test-node',
         'timestamp': '2026-09-25T10:00:00Z',
@@ -17,6 +17,7 @@ def _make_payload(occ=3, fill=50.0, surge=False, low_stock=False):
         'shelfFillRatio': fill,
         'surgeFlag': surge,
         'lowStockFlag': low_stock,
+        'anomalyFlag': anomaly,
     }
 
 
@@ -31,6 +32,7 @@ class TestTelemetrySessionStats:
         assert stats.success_rate == 100.0
         assert stats.avg_occupancy is None
         assert stats.avg_fill_ratio is None
+        assert stats.anomaly_count == 0
 
     def test_record_success(self):
         stats = TelemetrySessionStats()
@@ -77,17 +79,18 @@ class TestTelemetrySessionStats:
 
     def test_surge_and_low_stock_counting(self):
         stats = TelemetrySessionStats()
-        stats.record_success(_make_payload(surge=True, low_stock=False))
-        stats.record_success(_make_payload(surge=True, low_stock=True))
-        stats.record_success(_make_payload(surge=False, low_stock=True))
-        stats.record_success(_make_payload(surge=False, low_stock=False))
+        stats.record_success(_make_payload(surge=True, low_stock=False, anomaly=False))
+        stats.record_success(_make_payload(surge=True, low_stock=True, anomaly=True))
+        stats.record_success(_make_payload(surge=False, low_stock=True, anomaly=True))
+        stats.record_success(_make_payload(surge=False, low_stock=False, anomaly=False))
 
         assert stats.surge_count == 2
         assert stats.low_stock_count == 2
+        assert stats.anomaly_count == 2
 
     def test_to_dict_structure(self):
         stats = TelemetrySessionStats()
-        stats.record_success(_make_payload(occ=3, fill=60.0))
+        stats.record_success(_make_payload(occ=3, fill=60.0, anomaly=True))
         d = stats.to_dict()
 
         assert 'session_duration' in d
@@ -101,15 +104,19 @@ class TestTelemetrySessionStats:
         assert 'fill_ratio' in d
         assert d['fill_ratio']['min'] == 60.0
         assert 'alerts' in d
+        assert d['alerts']['surge_events'] == 0
+        assert d['alerts']['low_stock_events'] == 0
+        assert d['alerts']['anomaly_events'] == 1
         assert 'started_at' in d
 
     def test_str_representation(self):
         stats = TelemetrySessionStats()
-        stats.record_success(_make_payload(occ=5, fill=40.0, surge=True))
+        stats.record_success(_make_payload(occ=5, fill=40.0, surge=True, anomaly=True))
         s = str(stats)
         assert 'Session Stats' in s
         assert 'sent=1' in s
         assert 'surges=1' in s
+        assert 'anomalies=1' in s
 
     def test_throughput_calculation(self):
         stats = TelemetrySessionStats()

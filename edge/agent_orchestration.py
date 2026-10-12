@@ -16,6 +16,7 @@ Usage:
 import datetime
 import json
 import logging
+import os
 import sys
 import threading
 import time
@@ -28,9 +29,9 @@ logging.basicConfig(
     datefmt='%H:%M:%S',
 )
 
-API_BASE = "http://localhost:8080"
-SUPPLIER_BASE = "http://localhost:3001"
-POLL_INTERVAL = 10  # seconds
+API_BASE = os.environ.get("API_URL", "http://localhost:8080").rstrip("/")
+SUPPLIER_BASE = os.environ.get("SUPPLIER_URL", "http://localhost:3001").rstrip("/")
+POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "10"))  # seconds
 REORDER_BASE_QTY = 50
 
 
@@ -416,7 +417,25 @@ Triggered by telemetry event #{mission.get('triggeredByEventId', '?')}
 # Entry point
 # ---------------------------------------------------------------------------
 def main():
-    cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
+    import argparse
+    global API_BASE, SUPPLIER_BASE, POLL_INTERVAL
+
+    parser = argparse.ArgumentParser(description="Project Singularity Agent Orchestration")
+    parser.add_argument("cmd", nargs="?", default="all", choices=["restock", "pricing", "reporting", "all"],
+                        help="Agent to run (default: all)")
+    parser.add_argument("--api-url", default=None, help="Base URL of Spring Boot API")
+    parser.add_argument("--supplier-url", default=None, help="Base URL of Mock Supplier")
+    parser.add_argument("--poll-interval", type=int, default=None, help="Poll interval in seconds")
+    args = parser.parse_args()
+
+    if args.api_url:
+        API_BASE = args.api_url.rstrip("/")
+    if args.supplier_url:
+        SUPPLIER_BASE = args.supplier_url.rstrip("/")
+    if args.poll_interval:
+        POLL_INTERVAL = args.poll_interval
+
+    cmd = args.cmd
 
     if cmd == "restock":
         restock_agent()
@@ -439,9 +458,6 @@ def main():
                 time.sleep(1)
         except KeyboardInterrupt:
             print("\nShutting down agents.")
-    else:
-        print(f"Unknown command: {cmd}. Use: restock | pricing | reporting | all")
-        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -313,14 +313,18 @@ def run_live(args, cfg: Dict[str, Any]):
                 log.info(f"Telemetry: occupancy={occupancy} fill={fill_ratio:.1f}% surge={surge_flag} low_stock={low_stock_flag}")
 
                 anom = anomaly.ingest(payload)
+                payload['anomalyFlag'] = anom.has_anomaly
                 if anom.has_anomaly:
                     log.warning(f"ANOMALY DETECTED: {anom}")
-                    payload['anomalyFlag'] = True
                     payload['anomalyConfidence'] = round(anom.confidence_score, 3)
                     if anom.occupancy_z_score is not None:
-                        payload['anomalyOccupancyZ'] = anom.occupancy_z_score
+                        payload['anomalyOccupancyZ'] = round(anom.occupancy_z_score, 3)
                     if anom.fill_z_score is not None:
-                        payload['anomalyFillZ'] = anom.fill_z_score
+                        payload['anomalyFillZ'] = round(anom.fill_z_score, 3)
+                else:
+                    payload['anomalyConfidence'] = 0.0
+                    payload['anomalyOccupancyZ'] = None
+                    payload['anomalyFillZ'] = None
 
                 post_telemetry(payload, args.api_url, timeout=timeout)
                 last_post = now
@@ -374,38 +378,50 @@ def run_mock(args, cfg: Dict[str, Any]):
     log.info("Looping indefinitely — Ctrl+C to stop")
 
     sample_idx = 0
-    for payload in sequence:
-        if sample_idx > 0 and sample_idx % cycle_len == 0:
-            log.info(f"[MOCK] Cycle {payload.get('cycleCount', '?')} starting — looping demo sequence")
-            # Log periodic stats every cycle
-            log.info(f"[STATS] {stats}")
-            log.info(f"[HEARTBEAT] {heartbeat}")
-            log.info(f"[ANOMALY] {anomaly}")
-        log.info(
-            f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
-            f"fill={payload['shelfFillRatio']}% "
-            f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
-        )
-        anom = anomaly.ingest(payload)
-        if anom.has_anomaly:
-            log.warning(f"[ANOMALY] {anom}")
-            payload['anomalyFlag'] = True
-            payload['anomalyConfidence'] = round(anom.confidence_score, 3)
-            if anom.occupancy_z_score is not None:
-                payload['anomalyOccupancyZ'] = anom.occupancy_z_score
-            if anom.fill_z_score is not None:
-                payload['anomalyFillZ'] = anom.fill_z_score
+    try:
+        for payload in sequence:
+            if sample_idx > 0 and sample_idx % cycle_len == 0:
+                log.info(f"[MOCK] Cycle {payload.get('cycleCount', '?')} starting — looping demo sequence")
+                # Log periodic stats every cycle
+                log.info(f"[STATS] {stats}")
+                log.info(f"[HEARTBEAT] {heartbeat}")
+                log.info(f"[ANOMALY] {anomaly}")
+            log.info(
+                f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
+                f"fill={payload['shelfFillRatio']}% "
+                f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
+            )
+            anom = anomaly.ingest(payload)
+            payload['anomalyFlag'] = anom.has_anomaly
+            if anom.has_anomaly:
+                log.warning(f"[ANOMALY] {anom}")
+                payload['anomalyConfidence'] = round(anom.confidence_score, 3)
+                if anom.occupancy_z_score is not None:
+                    payload['anomalyOccupancyZ'] = round(anom.occupancy_z_score, 3)
+                if anom.fill_z_score is not None:
+                    payload['anomalyFillZ'] = round(anom.fill_z_score, 3)
+            else:
+                payload['anomalyConfidence'] = 0.0
+                payload['anomalyOccupancyZ'] = None
+                payload['anomalyFillZ'] = None
 
-        result = post_telemetry(payload, args.api_url, timeout=timeout)
-        if result is not None:
-            payload_bytes = len(json.dumps(payload))
-            stats.record_success(payload, payload_bytes)
-            heartbeat.record_success()
-        else:
-            stats.record_failure()
-            heartbeat.record_failure()
-        time.sleep(interval)
-        sample_idx += 1
+            result = post_telemetry(payload, args.api_url, timeout=timeout)
+            if result is not None:
+                payload_bytes = len(json.dumps(payload))
+                stats.record_success(payload, payload_bytes)
+                heartbeat.record_success()
+            else:
+                stats.record_failure()
+                heartbeat.record_failure()
+            time.sleep(interval)
+            sample_idx += 1
+    finally:
+        log.info("─" * 50)
+        log.info("SESSION SUMMARY")
+        log.info(f"[STATS] {stats}")
+        log.info(f"[HEARTBEAT] {heartbeat}")
+        log.info(f"[ANOMALY] {anomaly}")
+        log.info("─" * 50)
 
     return stats, heartbeat, anomaly
 

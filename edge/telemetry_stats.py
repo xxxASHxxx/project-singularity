@@ -35,6 +35,7 @@ class TelemetrySessionStats:
     # Alert counts
     surge_count: int = 0
     low_stock_count: int = 0
+    anomaly_count: int = 0
 
     def record_success(self, payload: Dict[str, Any], payload_bytes: int = 0) -> None:
         """Record a successful telemetry submission."""
@@ -63,6 +64,8 @@ class TelemetrySessionStats:
             self.surge_count += 1
         if payload.get('lowStockFlag'):
             self.low_stock_count += 1
+        if payload.get('anomalyFlag'):
+            self.anomaly_count += 1
 
     def record_failure(self) -> None:
         """Record a failed telemetry submission (buffered to DLQ)."""
@@ -135,6 +138,7 @@ class TelemetrySessionStats:
             'alerts': {
                 'surge_events': self.surge_count,
                 'low_stock_events': self.low_stock_count,
+                'anomaly_events': self.anomaly_count,
             },
             'started_at': datetime.datetime.fromtimestamp(
                 self.start_time, tz=datetime.timezone.utc
@@ -149,5 +153,5 @@ class TelemetrySessionStats:
             f"sent={self.total_sent} failed={self.total_failed} ({self.success_rate}%) | "
             f"throughput={self.throughput_per_minute}/min | "
             f"occ=[{self.occ_min}-{self.occ_max}] fill=[{self.fill_min}-{self.fill_max}] | "
-            f"surges={self.surge_count} low_stock={self.low_stock_count}"
+            f"surges={self.surge_count} low_stock={self.low_stock_count} anomalies={self.anomaly_count}"
         )
