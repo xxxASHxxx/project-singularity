@@ -232,8 +232,23 @@ export default function MissionDetailDrawer({ mission, onClose }: { mission: Age
                           <ReactMarkdown>{artifact.storagePath}</ReactMarkdown>
                         </div>
                       ) : artifact.artifactType === 'SCREENSHOT' ? (
-                        artifact.storagePath.startsWith('http') || artifact.storagePath.startsWith('data:') ? (
+                        artifact.storagePath.startsWith('data:image/') || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(artifact.storagePath) ? (
                           <img src={artifact.storagePath} alt="Screenshot" className="max-w-full rounded border border-border" style={{ maxHeight: 180 }} />
+                        ) : artifact.storagePath.startsWith('http://') || artifact.storagePath.startsWith('https://') ? (
+                          <a
+                            href={artifact.storagePath}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-medium border transition-colors"
+                            style={{
+                              background: 'rgba(167,139,250,0.1)',
+                              borderColor: 'rgba(167,139,250,0.3)',
+                              color: '#A78BFA',
+                            }}
+                          >
+                            <span>🔗</span>
+                            <span>Open Payment / Artifact Link</span>
+                          </a>
                         ) : (
                           <p className="text-xs font-mono text-gray-400 break-all">{artifact.storagePath}</p>
                         )

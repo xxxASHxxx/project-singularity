@@ -13,13 +13,58 @@ function formatTime(ts: string) {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload;
+  const isAnomaly = !!point?.anomaly;
+
   return (
-    <div className="panel p-3 text-xs font-mono">
-      <p className="text-gray-500 mb-1">{label}</p>
+    <div className="panel p-3 text-xs font-mono shadow-xl border border-[#2e2e32]">
+      <div className="flex items-center justify-between gap-3 mb-1.5 pb-1 border-b border-border/60">
+        <span className="text-gray-400">{label}</span>
+        {isAnomaly && (
+          <span
+            className="px-1.5 py-0.5 rounded text-[10px] font-bold border"
+            style={{
+              background: 'rgba(139, 92, 246, 0.2)',
+              borderColor: '#8B5CF6',
+              color: '#C4B5FD',
+            }}
+          >
+            ⚠ ANOMALY
+          </span>
+        )}
+      </div>
       {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>{p.name}: <strong>{p.value?.toFixed?.(1) ?? p.value}</strong></p>
+        <p key={p.name} style={{ color: p.color }} className="flex justify-between gap-3">
+          <span>{p.name}:</span>
+          <strong>{p.value?.toFixed?.(1) ?? p.value}</strong>
+        </p>
       ))}
+      {isAnomaly && point?.confidence != null && (
+        <div className="mt-1.5 pt-1.5 border-t border-purple-500/20 text-[10px] text-purple-300">
+          <div>Confidence: {Math.round(point.confidence * 100)}%</div>
+          {point.occZ != null && <div>Occupancy Z: {point.occZ > 0 ? '+' : ''}{point.occZ.toFixed(2)}</div>}
+          {point.fillZ != null && <div>Shelf Fill Z: {point.fillZ > 0 ? '+' : ''}{point.fillZ.toFixed(2)}</div>}
+        </div>
+      )}
     </div>
+  );
+};
+
+const renderAnomalyDot = (props: any) => {
+  const { cx, cy, payload, key } = props;
+  if (!payload?.anomaly) {
+    return <circle key={key ?? `dot-${cx}-${cy}`} cx={cx} cy={cy} r={0} opacity={0} />;
+  }
+  return (
+    <circle
+      key={key ?? `anom-${cx}-${cy}`}
+      cx={cx}
+      cy={cy}
+      r={4.5}
+      fill="#A78BFA"
+      stroke="#7C3AED"
+      strokeWidth={2}
+    />
   );
 };
 
@@ -48,6 +93,10 @@ export default function TelemetryPanel() {
       time: formatTime(e.recordedAt),
       occupancy: e.zoneOccupancyCount,
       fill: e.shelfFillRatio,
+      anomaly: !!e.anomalyFlag,
+      confidence: e.anomalyConfidence,
+      occZ: e.anomalyOccupancyZ,
+      fillZ: e.anomalyFillZ,
     }));
   }, [events, timeWindow]);
 
@@ -294,8 +343,8 @@ export default function TelemetryPanel() {
             <Legend wrapperStyle={{ fontSize: '11px', color: '#6B7280' }} />
             <ReferenceLine yAxisId="left" y={SURGE_THRESHOLD} stroke="#FF3B30" strokeDasharray="4 4" strokeOpacity={0.6} label={{ value: 'SURGE', fill: '#FF3B30', fontSize: 9 }} />
             <ReferenceLine yAxisId="right" y={LOW_STOCK_THRESHOLD} stroke="#FF8A00" strokeDasharray="4 4" strokeOpacity={0.6} label={{ value: 'LOW', fill: '#FF8A00', fontSize: 9 }} />
-            <Line yAxisId="left" type="monotone" dataKey="occupancy" name="Zone Occupancy" stroke="#FF3B30" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line yAxisId="right" type="monotone" dataKey="fill" name="Shelf Fill %" stroke="#FF8A00" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line yAxisId="left" type="monotone" dataKey="occupancy" name="Zone Occupancy" stroke="#FF3B30" strokeWidth={2} dot={renderAnomalyDot} activeDot={{ r: 4 }} />
+            <Line yAxisId="right" type="monotone" dataKey="fill" name="Shelf Fill %" stroke="#FF8A00" strokeWidth={2} dot={renderAnomalyDot} activeDot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       ) : (

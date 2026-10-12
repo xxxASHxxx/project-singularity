@@ -19,9 +19,19 @@ function formatBytes(bytes?: number | null): string | null {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+function getArtifactSummary(artifact: MissionArtifact): string {
+  if (artifact.artifactType === 'PLAN_MD') {
+    const firstLine = artifact.storagePath.split('\n').find(l => l.trim().length > 0) || 'Mission Plan';
+    return firstLine.replace(/^[#\s*_-]+/, '').trim() || 'Mission Plan Document';
+  }
+  return artifact.storagePath;
+}
+
 function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
   const [expanded, setExpanded] = useState(false);
   const icon = TYPE_ICON[artifact.artifactType] ?? '📁';
+  const isImage = artifact.storagePath.startsWith('data:image/') || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(artifact.storagePath);
+  const isHttpUrl = artifact.storagePath.startsWith('http://') || artifact.storagePath.startsWith('https://');
 
   return (
     <div className="panel p-3 mb-2" style={{ borderLeft: '2px solid #262626' }}>
@@ -35,7 +45,7 @@ function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
               <span className="text-xs font-mono text-gray-500">· {formatBytes(artifact.fileSizeBytes)}</span>
             )}
           </div>
-          <p className="text-xs font-mono text-gray-500 truncate">{artifact.storagePath}</p>
+          <p className="text-xs font-mono text-gray-500 truncate">{getArtifactSummary(artifact)}</p>
         </div>
         <span className="text-xs text-gray-600">{expanded ? '▲' : '▼'}</span>
       </div>
@@ -47,7 +57,15 @@ function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
               <ReactMarkdown>{artifact.storagePath}</ReactMarkdown>
             </div>
           ) : artifact.artifactType === 'SCREENSHOT' ? (
-            <img src={artifact.storagePath} alt="Screenshot" className="max-w-full rounded border border-border" style={{ maxHeight: 200 }} />
+            isImage ? (
+              <img src={artifact.storagePath} alt="Screenshot" className="max-w-full rounded border border-border" style={{ maxHeight: 200 }} />
+            ) : isHttpUrl ? (
+              <a href={artifact.storagePath} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono border border-purple-500/30 text-purple-300 hover:text-white transition-colors" style={{ background: 'rgba(167,139,250,0.1)' }}>
+                🔗 Open Payment / Artifact Link
+              </a>
+            ) : (
+              <pre className="text-xs text-gray-500 overflow-auto max-h-32">{artifact.storagePath}</pre>
+            )
           ) : artifact.artifactType === 'RECORDING_URL' ? (
             <a href={artifact.storagePath} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-accent hover:underline font-mono">
               ▶ Open Recording
