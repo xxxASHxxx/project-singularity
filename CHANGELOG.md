@@ -11,10 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Anomaly analytics aggregation** (`AnalyticsService` / `AnalyticsDto`) — added `anomalyEventsLast24h` metric to `GET /api/v1/analytics` response, tracking statistical outliers over the past 24 hours
 - **System Analytics anomaly card** — new purple accent metric card in `AnalyticsPanel` showing real-time 24h anomaly frequency
 - **Anomaly desktop notifications** (`useAlertNotifications`) — system alerts with 30s debounce whenever statistical anomalies are flagged by the edge node
-- **Enhanced telemetry anomaly badge & CSV export** — `TelemetryPanel` now displays detailed confidence percentage and z-scores on hover, and includes full anomaly metrics (`AnomalyFlag`, `AnomalyConfidence`, `AnomalyOccupancyZ`, `AnomalyFillZ`) in exported CSVs
+- **Enhanced telemetry anomaly badge, chart markers & CSV export** — `TelemetryPanel` now displays interactive violet anomaly markers on telemetry line charts, detailed tooltips with z-scores/confidence, confidence badge on hover, and full anomaly metrics (`AnomalyFlag`, `AnomalyConfidence`, `AnomalyOccupancyZ`, `AnomalyFillZ`) in exported CSVs
+- **Telemetry session stats anomaly tracking** (`TelemetrySessionStats`) — added cumulative `anomaly_count` tracking in session statistics and guaranteed summary logging on edge node exit
 - **Mock mode threshold and noise configuration** — `get_mock_sequence()` in `edge/mock_data.py` now respects custom `surge_threshold` and `low_stock_threshold`; added `--mock-jitter` / `--jitter` CLI flag for edge node simulation
+- **Configurable agent orchestration** (`agent_orchestration.py`) — support for `API_URL` and `SUPPLIER_URL` environment variables and CLI overrides (`--api-url`, `--supplier-url`, `--poll-interval`) with dedicated unit test suite
 
 ### Fixed
+- **Mission type query filtering** (`MissionService` / `AgentMissionRepository`) — fixed bug where `GET /api/v1/missions?type=RESTOCK` without a status parameter ignored type filtering and returned all missions
+- **Safe artifact rendering** (`AgentActivityFeed` / `MissionDetailDrawer`) — fixed broken image rendering for non-image web URLs (e.g. Razorpay payment links) and improved collapsed plan title extraction
+- **Command Center version badge** (`TopBar`) — aligned version badge to `v0.7.0`
 - Fixed Python ruff lint formatting issues in `anomaly_detector.py`, `test_anomaly_detector.py`, `test_anomaly_integration.py`, and `test_log_config.py`
 - Fixed unused variable warning in integration test assertions
 
