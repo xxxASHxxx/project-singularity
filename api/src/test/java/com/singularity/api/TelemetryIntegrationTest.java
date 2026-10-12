@@ -132,4 +132,61 @@ public class TelemetryIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors").exists());
     }
+
+    @Test
+    void anomalyFlag_persistsAndReturnsMetrics() throws Exception {
+        String anomalyPayload = """
+            {
+                "deviceId": "test-node",
+                "timestamp": "2026-08-21T10:00:10Z",
+                "zoneOccupancyCount": 7,
+                "shelfFillRatio": 85.0,
+                "surgeFlag": false,
+                "lowStockFlag": false,
+                "anomalyFlag": true,
+                "anomalyConfidence": 0.88,
+                "anomalyOccupancyZ": 2.45,
+                "anomalyFillZ": -1.82
+            }""";
+
+        mvc.perform(post("/api/v1/telemetry")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(anomalyPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(false));
+
+        mvc.perform(get("/api/v1/telemetry/latest?n=1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].anomalyFlag").value(true))
+                .andExpect(jsonPath("$[0].anomalyConfidence").value(0.88))
+                .andExpect(jsonPath("$[0].anomalyOccupancyZ").value(2.45))
+                .andExpect(jsonPath("$[0].anomalyFillZ").value(-1.82));
+    }
+
+    @Test
+    void filterMissionsByType_returnsOnlyMatchingType() throws Exception {
+        // Create RESTOCK mission
+        mvc.perform(post("/api/v1/telemetry")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(SURGE_PAYLOAD))
+                .andExpect(status().isOk());
+
+        // Create REPRICE mission
+        mvc.perform(post("/api/v1/telemetry")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(LOW_STOCK_PAYLOAD))
+                .andExpect(status().isOk());
+
+        // Query by type=RESTOCK
+        mvc.perform(get("/api/v1/missions?type=RESTOCK"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].missionType").value("RESTOCK"));
+
+        // Query by type=REPRICE
+        mvc.perform(get("/api/v1/missions?type=REPRICE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].missionType").value("REPRICE"));
+    }
 }

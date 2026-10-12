@@ -35,6 +35,9 @@ public class MissionService {
                 AgentMission.MissionType.valueOf(type.toUpperCase()),
                 MissionStatus.valueOf(status.toUpperCase()));
         }
+        if (type != null) {
+            return missionRepo.findByMissionType(AgentMission.MissionType.valueOf(type.toUpperCase()));
+        }
         if (status != null) {
             return missionRepo.findByStatus(MissionStatus.valueOf(status.toUpperCase()));
         }

@@ -11,6 +11,7 @@ public interface AgentMissionRepository extends JpaRepository<AgentMission, Long
         AgentMission.MissionType type,
         AgentMission.MissionStatus status
     );
+    List<AgentMission> findByMissionType(AgentMission.MissionType type);
     List<AgentMission> findByStatus(AgentMission.MissionStatus status);
     List<AgentMission> findAllByOrderByCreatedAtDesc();
 
