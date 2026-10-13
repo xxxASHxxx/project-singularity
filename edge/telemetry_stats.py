@@ -37,6 +37,26 @@ class TelemetrySessionStats:
     low_stock_count: int = 0
     anomaly_count: int = 0
 
+    # Velocity and depletion stats
+    peak_depletion_velocity: float = 0.0
+    rapid_depletion_count: int = 0
+    latest_velocity: Optional[float] = None
+    latest_stockout_eta: Optional[float] = None
+
+    def record_velocity(self, result: Any) -> None:
+        """Record velocity metrics from a VelocityResult."""
+        if result is None:
+            return
+        vel = getattr(result, 'velocity_pct_per_min', 0.0)
+        self.latest_velocity = vel
+        self.latest_stockout_eta = getattr(result, 'stockout_eta_minutes', None)
+        if vel < 0:
+            abs_depletion = abs(vel)
+            if abs_depletion > self.peak_depletion_velocity:
+                self.peak_depletion_velocity = round(abs_depletion, 2)
+        if getattr(result, 'is_rapid_depletion', False):
+            self.rapid_depletion_count += 1
+
     def record_success(self, payload: Dict[str, Any], payload_bytes: int = 0) -> None:
         """Record a successful telemetry submission."""
         self.total_sent += 1
@@ -140,6 +160,12 @@ class TelemetrySessionStats:
                 'low_stock_events': self.low_stock_count,
                 'anomaly_events': self.anomaly_count,
             },
+            'velocity': {
+                'latest_pct_per_min': self.latest_velocity,
+                'peak_depletion_pct_per_min': self.peak_depletion_velocity,
+                'rapid_depletion_events': self.rapid_depletion_count,
+                'latest_stockout_eta_min': self.latest_stockout_eta,
+            },
             'started_at': datetime.datetime.fromtimestamp(
                 self.start_time, tz=datetime.timezone.utc
             ).isoformat().replace('+00:00', 'Z'),
@@ -148,10 +174,12 @@ class TelemetrySessionStats:
     def __str__(self) -> str:
         """Human-readable session summary."""
         d = self.to_dict()
+        vel_str = f" vel={self.latest_velocity:+.2f}%/min" if self.latest_velocity is not None else ""
         return (
             f"Session Stats: {d['session_duration']} | "
             f"sent={self.total_sent} failed={self.total_failed} ({self.success_rate}%) | "
             f"throughput={self.throughput_per_minute}/min | "
-            f"occ=[{self.occ_min}-{self.occ_max}] fill=[{self.fill_min}-{self.fill_max}] | "
+            f"occ=[{self.occ_min}-{self.occ_max}] fill=[{self.fill_min}-{self.fill_max}]{vel_str} | "
             f"surges={self.surge_count} low_stock={self.low_stock_count} anomalies={self.anomaly_count}"
         )
+

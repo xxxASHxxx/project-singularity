@@ -132,3 +132,28 @@ class TestTelemetrySessionStats:
         stats = TelemetrySessionStats()
         stats.start_time = time.time() - 120  # 2 minutes ago
         assert stats.session_duration_seconds >= 119  # allow small timing variance
+
+    def test_record_velocity_tracking(self):
+        from detectors.velocity_tracker import VelocityResult
+        stats = TelemetrySessionStats()
+        res1 = VelocityResult(velocity_pct_per_min=-4.5, stockout_eta_minutes=15.0, is_rapid_depletion=False)
+        stats.record_velocity(res1)
+        assert stats.latest_velocity == -4.5
+        assert stats.latest_stockout_eta == 15.0
+        assert stats.peak_depletion_velocity == 4.5
+        assert stats.rapid_depletion_count == 0
+
+        res2 = VelocityResult(velocity_pct_per_min=-12.0, stockout_eta_minutes=5.0, is_rapid_depletion=True)
+        stats.record_velocity(res2)
+        assert stats.latest_velocity == -12.0
+        assert stats.latest_stockout_eta == 5.0
+        assert stats.peak_depletion_velocity == 12.0
+        assert stats.rapid_depletion_count == 1
+
+        d = stats.to_dict()
+        assert d['velocity']['latest_pct_per_min'] == -12.0
+        assert d['velocity']['peak_depletion_pct_per_min'] == 12.0
+        assert d['velocity']['rapid_depletion_events'] == 1
+        assert d['velocity']['latest_stockout_eta_min'] == 5.0
+        assert 'vel=-12.00%/min' in str(stats)
+
