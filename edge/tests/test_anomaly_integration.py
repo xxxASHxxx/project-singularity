@@ -144,6 +144,7 @@ class TestDiagnostics:
         assert 'dlq' in report
         assert 'heartbeat' in report
         assert 'anomaly_detector' in report
+        assert 'velocity_tracker' in report
         assert 'logging' in report
         assert 'note' in report
 
@@ -180,6 +181,15 @@ class TestDiagnostics:
         assert ad['total_ingested'] == 0
         assert ad['total_anomalies'] == 0
         assert ad['anomaly_rate'] == '0.0%'
+
+    def test_diagnostics_velocity_tracker_defaults(self):
+        """Velocity tracker section should show zero samples."""
+        report = run_diagnostics()
+        vt = report['velocity_tracker']
+        assert vt['sample_count'] == 0
+        assert vt['window_size'] == 12
+        assert vt['last_result'] is None
+
 
     def test_diagnostics_logging_section(self):
         """Logging section should report the format and handlers."""

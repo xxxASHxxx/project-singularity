@@ -169,3 +169,6 @@ def test_generate_health_report_structure():
     assert report['api_health']['reachable'] is True
     assert 'dlq' in report
     assert 'count' in report['dlq']
+    assert 'velocity_tracker' in report
+    assert 'sample_count' in report['velocity_tracker']
+

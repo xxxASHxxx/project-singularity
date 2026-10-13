@@ -185,7 +185,22 @@ def replay_failed_payloads(api_url: str, limit: int = 20, timeout: int = 5, log_
     return replayed_count
 
 
-def post_telemetry(payload: Dict[str, Any], api_url: str, max_retries: int = 3, timeout: int = 5) -> Optional[Dict]:
+def post_telemetry(
+    payload: Dict[str, Any],
+    api_url: str,
+    max_retries: int = 3,
+    timeout: int = 5,
+    chaos_rate: float = 0.0,
+) -> Optional[Dict]:
+    if chaos_rate > 0.0:
+        import random
+        if random.random() < chaos_rate:
+            log.warning(f"[CHAOS] Synthetic transmission failure injected (rate={chaos_rate:.2f})")
+            log.error("Chaos injection simulated failure. Saving payload to failed_payloads.jsonl")
+            with open(FAILED_LOG, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(payload) + '\n')
+            return None
+
     url = f"{api_url}/api/v1/telemetry"
     payload_size = len(json.dumps(payload))
     for attempt in range(max_retries):
@@ -348,13 +363,14 @@ def run_live(args, cfg: Dict[str, Any]):
 # Mock mode loop
 # ---------------------------------------------------------------------------
 def run_mock(args, cfg: Dict[str, Any]):
-    from detectors import AnomalyDetector
+    from detectors import AnomalyDetector, VelocityTracker
     from heartbeat import HeartbeatMonitor
     from mock_data import MOCK_SEQUENCE, get_mock_sequence
     from telemetry_stats import TelemetrySessionStats
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
+    chaos_rate = float(cfg.get('chaos_rate', 0.0))
     sequence = get_mock_sequence(
         device_id=device_id,
         jitter=getattr(args, 'mock_jitter', False),
@@ -372,12 +388,21 @@ def run_mock(args, cfg: Dict[str, Any]):
         trend_decline_threshold=cfg.get('anomaly_trend_decline_threshold', -1.0),
         cooldown_samples=cfg.get('anomaly_cooldown_samples', 5),
     )
+    velocity = VelocityTracker(
+        window_size=cfg.get('velocity_window', 12),
+        min_samples=cfg.get('velocity_min_samples', 3),
+        rapid_threshold=cfg.get('rapid_depletion_threshold', 10.0),
+        critical_threshold=cfg.get('low_stock_threshold', 20.0),
+    )
 
     log.info(f"[MOCK MODE] Posting every {interval}s to {args.api_url}")
+    if chaos_rate > 0.0:
+        log.warning(f"[MOCK MODE] Network chaos simulation enabled (drop_rate={chaos_rate:.2f})")
     log.info("Surge will fire at ~t=25s, low-stock at ~t=40s")
     log.info("Looping indefinitely — Ctrl+C to stop")
 
     sample_idx = 0
+    vel_res = None
     try:
         for payload in sequence:
             if sample_idx > 0 and sample_idx % cycle_len == 0:
@@ -386,11 +411,18 @@ def run_mock(args, cfg: Dict[str, Any]):
                 log.info(f"[STATS] {stats}")
                 log.info(f"[HEARTBEAT] {heartbeat}")
                 log.info(f"[ANOMALY] {anomaly}")
+                if vel_res is not None:
+                    log.info(f"[VELOCITY] {vel_res}")
             log.info(
                 f"[MOCK] occupancy={payload['zoneOccupancyCount']} "
                 f"fill={payload['shelfFillRatio']}% "
                 f"surge={payload['surgeFlag']} low_stock={payload['lowStockFlag']}"
             )
+            vel_res = velocity.ingest(payload['shelfFillRatio'])
+            stats.record_velocity(vel_res)
+            if vel_res.is_rapid_depletion:
+                log.warning(f"[VELOCITY] Rapid shelf depletion: {vel_res}")
+
             anom = anomaly.ingest(payload)
             payload['anomalyFlag'] = anom.has_anomaly
             if anom.has_anomaly:
@@ -405,7 +437,7 @@ def run_mock(args, cfg: Dict[str, Any]):
                 payload['anomalyOccupancyZ'] = None
                 payload['anomalyFillZ'] = None
 
-            result = post_telemetry(payload, args.api_url, timeout=timeout)
+            result = post_telemetry(payload, args.api_url, timeout=timeout, chaos_rate=chaos_rate)
             if result is not None:
                 payload_bytes = len(json.dumps(payload))
                 stats.record_success(payload, payload_bytes)
@@ -421,9 +453,11 @@ def run_mock(args, cfg: Dict[str, Any]):
         log.info(f"[STATS] {stats}")
         log.info(f"[HEARTBEAT] {heartbeat}")
         log.info(f"[ANOMALY] {anomaly}")
+        if vel_res is not None:
+            log.info(f"[VELOCITY] {vel_res}")
         log.info("─" * 50)
 
-    return stats, heartbeat, anomaly
+    return stats, heartbeat, anomaly, velocity
 
 
 # ---------------------------------------------------------------------------
@@ -496,16 +530,17 @@ def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5
 
 def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
     """Generate a comprehensive JSON health report for diagnostics."""
-    from detectors import AnomalyDetector
+    from detectors import AnomalyDetector, VelocityTracker
     from heartbeat import HeartbeatMonitor
     from log_config import get_log_config_summary
     health = preflight_health_check(api_url, max_attempts=3, timeout=timeout)
     dlq_stats = get_dlq_age_stats()
     hb = HeartbeatMonitor()
     ad = AnomalyDetector()
+    vt = VelocityTracker()
 
     return {
-        'version': 'v0.7.0',
+        'version': 'v0.8.0',
         'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
         'system': {
             'python_version': platform.python_version(),
@@ -515,6 +550,7 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
         'api_health': health,
         'heartbeat': hb.to_dict(),
         'anomaly_detector': ad.window_stats,
+        'velocity_tracker': vt.window_stats,
         'dlq': dlq_stats,
         'logging': get_log_config_summary(fmt='human'),
     }
@@ -525,16 +561,17 @@ def run_diagnostics() -> Dict[str, Any]:
 
     Useful for quick operator checks when the API might be unreachable.
     """
-    from detectors import AnomalyDetector
+    from detectors import AnomalyDetector, VelocityTracker
     from heartbeat import HeartbeatMonitor
     from log_config import get_log_config_summary
 
     dlq_stats = get_dlq_age_stats()
     hb = HeartbeatMonitor()
     ad = AnomalyDetector()
+    vt = VelocityTracker()
 
     return {
-        'version': 'v0.7.0',
+        'version': 'v0.8.0',
         'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
         'system': {
             'python_version': platform.python_version(),
@@ -544,6 +581,7 @@ def run_diagnostics() -> Dict[str, Any]:
         'dlq': dlq_stats,
         'heartbeat': hb.to_dict(),
         'anomaly_detector': ad.window_stats,
+        'velocity_tracker': vt.window_stats,
         'logging': get_log_config_summary(),
         'note': 'offline diagnostics — no API health check performed',
     }
@@ -590,6 +628,12 @@ def main():
                         help='Override low stock detection threshold percentage')
     parser.add_argument('--mock-jitter', '--jitter', action='store_true',
                         help='Enable realistic sensor noise in mock mode')
+    parser.add_argument('--velocity-window', type=int, default=None,
+                        help='Override velocity tracker sliding window size')
+    parser.add_argument('--rapid-depletion-threshold', type=float, default=None,
+                        help='Override rapid depletion rate threshold (%/min)')
+    parser.add_argument('--chaos-rate', '--chaos-drop-rate', type=float, default=None,
+                        help='Simulate network packet loss rate (0.0 to 1.0) for DLQ stress testing')
     args = parser.parse_args()
 
     # Initialize structured logging before any log output
@@ -621,6 +665,12 @@ def main():
         cfg['surge_threshold'] = args.surge_threshold
     if args.low_stock_threshold is not None:
         cfg['low_stock_threshold'] = args.low_stock_threshold
+    if args.velocity_window is not None:
+        cfg['velocity_window'] = args.velocity_window
+    if args.rapid_depletion_threshold is not None:
+        cfg['rapid_depletion_threshold'] = args.rapid_depletion_threshold
+    if args.chaos_rate is not None:
+        cfg['chaos_rate'] = max(0.0, min(1.0, args.chaos_rate))
 
     log.info(f"API URL: {args.api_url}")
 
