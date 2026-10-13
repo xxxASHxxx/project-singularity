@@ -84,12 +84,32 @@ function useFlash(value: any): boolean {
   return flash;
 }
 
-export default function TelemetryPanel() {
+interface TelemetryPanelProps {
+  isPaused?: boolean;
+  onTogglePause?: () => void;
+}
+
+export default function TelemetryPanel({ isPaused, onTogglePause }: TelemetryPanelProps = {}) {
   const { data: events = [], isError } = useTelemetry();
   const [timeWindow, setTimeWindow] = useState<15 | 30 | 60>(30);
+  const [internalPaused, setInternalPaused] = useState(false);
+
+  const paused = isPaused ?? internalPaused;
+  const togglePause = onTogglePause ?? (() => setInternalPaused(p => !p));
+
+  // Maintain frozen events buffer when stream is paused
+  const frozenEventsRef = useRef<TelemetryEvent[]>([]);
+  useEffect(() => {
+    if (!paused) {
+      frozenEventsRef.current = events;
+    }
+  }, [events, paused]);
+
+  const activeEvents = paused && frozenEventsRef.current.length > 0 ? frozenEventsRef.current : events;
+  const queuedCount = paused ? Math.max(0, events.length - frozenEventsRef.current.length) : 0;
 
   const chartData = useMemo(() => {
-    return [...events].reverse().slice(-timeWindow).map((e: TelemetryEvent) => ({
+    return [...activeEvents].reverse().slice(-timeWindow).map((e: TelemetryEvent) => ({
       time: formatTime(e.recordedAt),
       occupancy: e.zoneOccupancyCount,
       fill: e.shelfFillRatio,
@@ -98,9 +118,9 @@ export default function TelemetryPanel() {
       occZ: e.anomalyOccupancyZ,
       fillZ: e.anomalyFillZ,
     }));
-  }, [events, timeWindow]);
+  }, [activeEvents, timeWindow]);
 
-  const latest = events[0];
+  const latest = activeEvents[0];
 
   const surgeFiring = latest?.surgeFlag;
   const lowStockFiring = latest?.lowStockFlag;
@@ -108,15 +128,41 @@ export default function TelemetryPanel() {
   const occupancyFlash = useFlash(latest?.zoneOccupancyCount);
   const fillFlash = useFlash(latest ? Math.round(latest.shelfFillRatio * 10) : undefined);
 
+  // Velocity and depletion runway estimation
+  const velocityInfo = useMemo(() => {
+    if (activeEvents.length < 2) return null;
+    const sampleCount = Math.min(6, activeEvents.length);
+    const recent = activeEvents.slice(0, sampleCount);
+    const latestFill = recent[0].shelfFillRatio;
+    const oldestFill = recent[sampleCount - 1].shelfFillRatio;
+    const tLatest = new Date(recent[0].recordedAt).getTime();
+    const tOldest = new Date(recent[sampleCount - 1].recordedAt).getTime();
+    const deltaMin = Math.max(0.08, (tLatest - tOldest) / 60000);
+    const velocity = Number(((latestFill - oldestFill) / deltaMin).toFixed(1));
+
+    let stockoutEta: number | null = null;
+    if (velocity <= -0.5 && latestFill > 0) {
+      const target = latestFill > LOW_STOCK_THRESHOLD ? LOW_STOCK_THRESHOLD : 0;
+      stockoutEta = Math.max(0.1, Number(((latestFill - target) / Math.abs(velocity)).toFixed(1)));
+    }
+
+    return {
+      velocity,
+      stockoutEta,
+      isRapid: velocity <= -10.0,
+      isRestocking: velocity >= 3.0,
+    };
+  }, [activeEvents]);
+
   // Real-time statistics across visible events buffer
   const stats = useMemo(() => {
-    if (!events.length) return null;
+    if (!activeEvents.length) return null;
     let peakOcc = 0;
     let minOcc = 999;
     let peakFill = 0;
     let minFill = 100;
 
-    for (const e of events) {
+    for (const e of activeEvents) {
       if (e.zoneOccupancyCount > peakOcc) peakOcc = e.zoneOccupancyCount;
       if (e.zoneOccupancyCount < minOcc) minOcc = e.zoneOccupancyCount;
       if (e.shelfFillRatio > peakFill) peakFill = e.shelfFillRatio;
@@ -124,9 +170,9 @@ export default function TelemetryPanel() {
     }
 
     // Velocity / trend over recent 3 samples
-    const recentSpan = Math.min(3, events.length - 1);
-    const occDelta = recentSpan > 0 ? events[0].zoneOccupancyCount - events[recentSpan].zoneOccupancyCount : 0;
-    const fillDelta = recentSpan > 0 ? Number((events[0].shelfFillRatio - events[recentSpan].shelfFillRatio).toFixed(1)) : 0;
+    const recentSpan = Math.min(3, activeEvents.length - 1);
+    const occDelta = recentSpan > 0 ? activeEvents[0].zoneOccupancyCount - activeEvents[recentSpan].zoneOccupancyCount : 0;
+    const fillDelta = recentSpan > 0 ? Number((activeEvents[0].shelfFillRatio - activeEvents[recentSpan].shelfFillRatio).toFixed(1)) : 0;
 
     return {
       peakOcc,
@@ -136,12 +182,12 @@ export default function TelemetryPanel() {
       occDelta,
       fillDelta,
     };
-  }, [events]);
+  }, [activeEvents]);
 
   const handleExportCSV = () => {
-    if (!events.length) return;
+    if (!activeEvents.length) return;
     const headers = ['RecordedAt', 'DeviceId', 'ZoneOccupancyCount', 'ShelfFillRatio', 'SurgeFlag', 'LowStockFlag', 'AnomalyFlag', 'AnomalyConfidence', 'AnomalyOccupancyZ', 'AnomalyFillZ'];
-    const rows = events.map(e => [
+    const rows = activeEvents.map(e => [
       `"${e.recordedAt}"`,
       `"${e.deviceId}"`,
       e.zoneOccupancyCount,
@@ -169,7 +215,7 @@ export default function TelemetryPanel() {
     <div className="panel p-5">
       {/* Header bar with device status, controls, and CSV export */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <p className="section-title mb-0">Live Telemetry</p>
           {latest && (
             <span
@@ -188,6 +234,74 @@ export default function TelemetryPanel() {
           {events.length > 0 && (
             <span className="text-[10px] font-mono text-gray-500 hidden sm:inline">
               ({events.length} buffered)
+            </span>
+          )}
+          {paused && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono border font-semibold"
+              style={{
+                background: 'rgba(245, 158, 11, 0.15)',
+                borderColor: '#F59E0B',
+                color: '#FCD34D',
+              }}
+            >
+              ⏸ FROZEN {queuedCount > 0 ? `(+${queuedCount})` : ''}
+            </span>
+          )}
+          {velocityInfo && (
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono border"
+              style={{
+                background: velocityInfo.isRapid
+                  ? 'rgba(239, 68, 68, 0.15)'
+                  : velocityInfo.velocity < -0.5
+                  ? 'rgba(245, 158, 11, 0.12)'
+                  : velocityInfo.isRestocking
+                  ? 'rgba(34, 197, 94, 0.12)'
+                  : 'rgba(255, 255, 255, 0.03)',
+                borderColor: velocityInfo.isRapid
+                  ? '#EF4444'
+                  : velocityInfo.velocity < -0.5
+                  ? '#F59E0B'
+                  : velocityInfo.isRestocking
+                  ? '#22C55E'
+                  : '#262626',
+                color: velocityInfo.isRapid
+                  ? '#FCA5A5'
+                  : velocityInfo.velocity < -0.5
+                  ? '#FCD34D'
+                  : velocityInfo.isRestocking
+                  ? '#86EFAC'
+                  : '#9CA3AF',
+                boxShadow: velocityInfo.isRapid ? '0 0 10px rgba(239, 68, 68, 0.3)' : undefined,
+              }}
+              title={
+                velocityInfo.isRapid
+                  ? `Rapid stock depletion: ${velocityInfo.velocity}%/min`
+                  : velocityInfo.velocity < -0.5
+                  ? `Depletion rate: ${velocityInfo.velocity}%/min${velocityInfo.stockoutEta != null ? ` (ETA: ~${velocityInfo.stockoutEta}m)` : ''}`
+                  : velocityInfo.isRestocking
+                  ? `Restocking rate: +${velocityInfo.velocity}%/min`
+                  : 'Shelf fill rate stable'
+              }
+            >
+              <span>
+                {velocityInfo.isRapid
+                  ? '⚡ RAPID'
+                  : velocityInfo.velocity < -0.5
+                  ? '📉'
+                  : velocityInfo.isRestocking
+                  ? '📦 RESTOCK'
+                  : '⚡'}
+              </span>
+              <span>
+                {velocityInfo.velocity > 0 ? `+${velocityInfo.velocity}` : `${velocityInfo.velocity}`}%/min
+              </span>
+              {velocityInfo.stockoutEta != null && (
+                <span className="opacity-80 text-[10px]">
+                  (~{velocityInfo.stockoutEta}m)
+                </span>
+              )}
             </span>
           )}
           {latest?.anomalyFlag && (
@@ -216,6 +330,21 @@ export default function TelemetryPanel() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Pause / Resume toggle button */}
+          <button
+            type="button"
+            onClick={togglePause}
+            className={`px-2.5 py-1 text-[11px] font-mono rounded border transition-colors flex items-center gap-1.5 ${
+              paused
+                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                : 'text-gray-400 hover:text-gray-200 border-[#262626] bg-white/[0.03]'
+            }`}
+            title="Freeze / resume live telemetry chart (shortcut: P)"
+          >
+            <span>{paused ? '▶' : '⏸'}</span>
+            <span className="hidden sm:inline">{paused ? 'Resume' : 'Freeze'}</span>
+          </button>
+
           {/* Time window selector */}
           <div className="flex items-center border border-border rounded overflow-hidden p-0.5 bg-black/40">
             {([15, 30, 60] as const).map(win => (

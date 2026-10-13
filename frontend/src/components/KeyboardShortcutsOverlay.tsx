@@ -14,11 +14,13 @@ const SHORTCUTS: Shortcut[] = [
   { keys: ['A'], description: 'Jump to agent activity feed', category: 'navigation' },
 
   // Telemetry
+  { keys: ['P'], description: 'Pause / resume live telemetry stream', category: 'telemetry' },
   { keys: ['1'], description: 'Set telemetry window to 15 samples', category: 'telemetry' },
   { keys: ['2'], description: 'Set telemetry window to 30 samples', category: 'telemetry' },
   { keys: ['3'], description: 'Set telemetry window to 60 samples', category: 'telemetry' },
   { keys: ['E'], description: 'Export telemetry as CSV', category: 'telemetry' },
   { keys: ['R'], description: 'Refresh telemetry data now', category: 'telemetry' },
+
 
   // Actions
   { keys: ['Ctrl', 'K'], description: 'Open command palette', category: 'actions' },

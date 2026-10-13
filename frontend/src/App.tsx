@@ -22,6 +22,7 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isTelemetryPaused, setIsTelemetryPaused] = useState(false);
 
   // Desktop notifications for surge/low-stock alerts
   const latestTelemetry = telemetryEvents.length > 0 ? telemetryEvents[0] : null;
@@ -143,6 +144,15 @@ export default function App() {
       },
     },
     {
+      id: 'toggle-stream-pause',
+      label: isTelemetryPaused ? 'Resume Telemetry Stream' : 'Pause Telemetry Stream',
+      description: isTelemetryPaused ? 'Unfreeze live chart updates' : 'Freeze live chart updates for inspection',
+      icon: isTelemetryPaused ? '▶️' : '⏸️',
+      category: 'Telemetry',
+      shortcut: 'P',
+      action: () => setIsTelemetryPaused(prev => !prev),
+    },
+    {
       id: 'refresh-data',
       label: 'Refresh Data',
       description: 'Force refresh all telemetry and mission data',
@@ -151,7 +161,7 @@ export default function App() {
       shortcut: 'R',
       action: () => window.location.reload(),
     },
-  ], [notificationsEnabled, scrollToRef]);
+  ], [notificationsEnabled, isTelemetryPaused, scrollToRef]);
 
   // Global keyboard shortcuts
   const shortcutHandlers = useMemo(() => ({
@@ -165,6 +175,7 @@ export default function App() {
       if (showShortcuts) setShowShortcuts(false);
       setShowPalette(prev => !prev);
     },
+    'P': () => { if (!showShortcuts && !showPalette) setIsTelemetryPaused(prev => !prev); },
     'D': () => { if (!showShortcuts && !showPalette) scrollToRef(dashboardRef); },
     'T': () => { if (!showShortcuts && !showPalette) scrollToRef(telemetryRef); },
     'M': () => { if (!showShortcuts && !showPalette) scrollToRef(missionRef); },
@@ -242,7 +253,7 @@ export default function App() {
           {/* Left: telemetry (wide) */}
           <div className="xl:col-span-2 space-y-4">
             <div ref={telemetryRef}>
-              <TelemetryPanel />
+              <TelemetryPanel isPaused={isTelemetryPaused} onTogglePause={() => setIsTelemetryPaused(p => !p)} />
             </div>
             <OccupancyHeatmap />
             <div ref={activityRef}>

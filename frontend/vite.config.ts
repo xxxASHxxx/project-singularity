@@ -12,4 +12,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-markdown': ['react-markdown'],
+          'vendor-axios': ['axios'],
+        },
+      },
+    },
+  },
+
 });
+
