@@ -19,3 +19,5 @@ This file records every non-obvious decision made during construction without as
 | 13 | Duplicate telemetry suppression | Unique index on (device_id, recorded_at); return existing mission ID on duplicate | Idempotency without complex distributed locking |
 | 14 | Debounce for occupancy | 5-sample rolling average | Prevents camera noise from triggering missions |
 | 15 | Shelf ROI comparison | SSIM against a calibrated reference frame | Calibration step makes baseline meaningful without any training data |
+| 16 | Depletion velocity estimation | Ordinary Least Squares (OLS) slope over rolling sample window | Mitigates optical noise and momentary occlusions while providing reliable consumption rate (%/min) and stockout ETA |
+

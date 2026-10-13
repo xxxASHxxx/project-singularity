@@ -70,3 +70,10 @@ dlq-status: ## Show dead-letter queue status
 
 dlq-replay: ## Replay all buffered failed payloads
 	python edge/main.py --replay-failed
+
+diagnostics: ## Show local edge subsystem diagnostics (offline)
+	python edge/main.py --diagnostics
+
+mock-chaos: ## Run mock edge node with 30% simulated network packet drop
+	python edge/main.py --mock --chaos-rate 0.3
+

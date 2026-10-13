@@ -279,7 +279,10 @@ make logs           # Tail container logs
 make nuke           # ⚠️ Destroy containers + volumes (fresh start)
 make dlq-status     # Check dead-letter queue
 make dlq-replay     # Replay failed telemetry payloads
+make diagnostics    # Show local edge subsystem diagnostics (offline)
+make mock-chaos     # Run mock edge node with 30% simulated network drop
 ```
+
 
 <br/>
 
