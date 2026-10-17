@@ -4,10 +4,10 @@ import type { AnalyticsSnapshot, MissionArtifact } from '../api/client';
 
 const POLL_INTERVAL = 4000;
 
-export function useTelemetry() {
+export function useTelemetry(limit = 60) {
   return useQuery({
-    queryKey: ['telemetry'],
-    queryFn: () => fetchTelemetry(60),
+    queryKey: ['telemetry', limit],
+    queryFn: () => fetchTelemetry(limit),
     refetchInterval: POLL_INTERVAL,
   });
 }
@@ -42,8 +42,8 @@ export function useMissionArtifacts(missionId?: number | null, status?: string |
   return useQuery<MissionArtifact[]>({
     queryKey: ['artifacts', missionId],
     queryFn: () => fetchArtifacts(missionId!),
-    enabled: missionId !== undefined && missionId !== null && status !== 'PENDING_APPROVAL',
-    refetchInterval: isTerminal ? false : POLL_INTERVAL,
+    enabled: missionId !== undefined && missionId !== null,
+    refetchInterval: isTerminal || status === 'PENDING_APPROVAL' ? false : POLL_INTERVAL,
   });
 }
 

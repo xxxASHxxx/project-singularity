@@ -74,6 +74,9 @@ dlq-replay: ## Replay all buffered failed payloads
 diagnostics: ## Show local edge subsystem diagnostics (offline)
 	python edge/main.py --diagnostics
 
+health-report: ## Show API connectivity and full subsystem health report
+	python edge/main.py --health-report
+
 mock-chaos: ## Run mock edge node with 30% simulated network packet drop
 	python edge/main.py --mock --chaos-rate 0.3
 

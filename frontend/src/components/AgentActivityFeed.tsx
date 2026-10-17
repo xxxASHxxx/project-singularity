@@ -70,6 +70,10 @@ function ArtifactCard({ artifact }: { artifact: MissionArtifact }) {
             <a href={artifact.storagePath} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-accent hover:underline font-mono">
               ▶ Open Recording
             </a>
+          ) : artifact.artifactType === 'LOG' ? (
+            <pre className="text-xs font-mono text-gray-300 bg-black/40 p-2.5 rounded border border-border overflow-x-auto whitespace-pre-wrap break-all max-h-40">
+              {artifact.storagePath}
+            </pre>
           ) : (
             <pre className="text-xs text-gray-500 overflow-auto max-h-32">{artifact.storagePath}</pre>
           )}

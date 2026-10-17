@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+frontend/dist/
+api/target/
+.git/
+.github/
+.pytest_cache/
+.ruff_cache/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+edge/logs/failed_payloads.jsonl
+mock-supplier/data/*.db
+*.log
