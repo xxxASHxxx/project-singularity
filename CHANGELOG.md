@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.8.1] — 2026-10-17
+
+### Added
+- **Edge live camera telemetry parity** (`edge/main.py`) — connected `VelocityTracker`, `HeartbeatMonitor`, and `TelemetrySessionStats` to `run_live()` loop with rapid depletion alerting, chaos simulation, per-frame rate metrics, and structured exit session summary
+- **Diagnostics and health report runtime monitor injection** (`generate_health_report` / `run_diagnostics`) — allows passing active `HeartbeatMonitor`, `AnomalyDetector`, and `VelocityTracker` instances to capture live system state during runtime
+- **Root Docker ignore configuration** (`.dockerignore`) — avoids transferring `node_modules`, `dist`, `target`, `.git`, and test caches to Docker daemon during builds
+- **Makefile health-report shortcut** (`make health-report`) — quick target for full subsystem diagnostic report
+- 3 new unit tests (138 total passing): verifying health report subsystem completeness, resilience when API is unreachable, and runtime instance state injection
+
+### Changed
+- Edge Dockerfile configured with `ENV PYTHONUNBUFFERED=1` and `ENV PYTHONDONTWRITEBYTECODE=1` for immediate log stream flushing in Docker Compose
+
+### Fixed
+- **Pending mission artifact inspection** (`useMissionArtifacts`) — enabled loading artifacts for pending approval missions so operators can review proposed plans before approval without polling overhead
+- **Formatted LOG artifact display** (`AgentActivityFeed`) — added dark background, pre-wrapped monospace rendering for raw agent execution logs matching drawer styling
+
+---
+
 ## [0.8.0] — 2026-10-13
 
 ### Added
