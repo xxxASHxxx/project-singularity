@@ -198,3 +198,23 @@ class TestDiagnostics:
         assert 'format' in log_cfg
         assert 'level' in log_cfg
         assert 'handlers' in log_cfg
+
+    def test_diagnostics_with_runtime_instances(self):
+        """run_diagnostics should reflect state when passed active subsystem instances."""
+        from detectors import AnomalyDetector, VelocityTracker
+        from heartbeat import HeartbeatMonitor
+
+        hb = HeartbeatMonitor()
+        hb.record_failure()
+
+        vt = VelocityTracker(window_size=6)
+        vt.ingest(70.0)
+
+        ad = AnomalyDetector(window_size=20)
+        ad.ingest({'zoneOccupancyCount': 2, 'shelfFillRatio': 70.0})
+
+        report = run_diagnostics(hb=hb, ad=ad, vt=vt)
+        assert report['heartbeat']['consecutive_failures'] == 1
+        assert report['velocity_tracker']['sample_count'] == 1
+        assert report['anomaly_detector']['total_ingested'] == 1
+

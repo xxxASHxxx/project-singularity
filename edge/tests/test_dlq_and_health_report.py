@@ -171,4 +171,51 @@ def test_generate_health_report_structure():
     assert 'count' in report['dlq']
     assert 'velocity_tracker' in report
     assert 'sample_count' in report['velocity_tracker']
+    assert 'heartbeat' in report
+    assert report['heartbeat']['status'] == 'HEALTHY'
+    assert 'anomaly_detector' in report
+    assert 'logging' in report
+
+
+def test_generate_health_report_when_api_unreachable():
+    """generate_health_report produces safe report even when the API is completely offline."""
+    import requests
+
+    with patch('requests.get', side_effect=requests.ConnectionError("Connection refused")):
+        report = generate_health_report("http://offline-api:8080", timeout=1)
+
+    assert report['api_health']['reachable'] is False
+    assert report['api_health']['attempts_used'] == 3
+    assert 'heartbeat' in report
+    assert 'velocity_tracker' in report
+    assert 'dlq' in report
+
+
+def test_generate_health_report_with_runtime_instances():
+    """generate_health_report should preserve state of provided runtime monitors."""
+    from detectors import AnomalyDetector, VelocityTracker
+    from heartbeat import HeartbeatMonitor
+
+    hb = HeartbeatMonitor(degraded_threshold=2)
+    hb.record_failure()
+    hb.record_failure()
+
+    vt = VelocityTracker(window_size=8)
+    vt.ingest(90.0)
+    vt.ingest(85.0)
+
+    ad = AnomalyDetector(window_size=15)
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch('requests.get', return_value=mock_resp):
+        report = generate_health_report("http://mock-api:8080", hb=hb, ad=ad, vt=vt)
+
+    assert report['heartbeat']['status'] == 'DEGRADED'
+    assert report['heartbeat']['consecutive_failures'] == 2
+    assert report['velocity_tracker']['sample_count'] == 2
+    assert report['velocity_tracker']['window_size'] == 8
+
 

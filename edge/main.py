@@ -263,7 +263,9 @@ def run_live(args, cfg: Dict[str, Any]):
     import cv2
     import numpy as np
     sys.path.insert(0, str(ROOT / 'edge'))
-    from detectors import AnomalyDetector, PersonDetector, ShelfDetector
+    from detectors import AnomalyDetector, PersonDetector, ShelfDetector, VelocityTracker
+    from heartbeat import HeartbeatMonitor
+    from telemetry_stats import TelemetrySessionStats
 
     SHELF_BASELINE = ROOT / 'config' / 'shelf_baseline.jpg'
     if not SHELF_BASELINE.exists():
@@ -278,7 +280,10 @@ def run_live(args, cfg: Dict[str, Any]):
     interval = cfg.get('sample_interval_seconds', 5)
     device_id = cfg.get('device_id', 'edge-node-01')
     timeout = cfg.get('http_timeout', 5)
+    chaos_rate = float(cfg.get('chaos_rate', 0.0))
 
+    stats = TelemetrySessionStats()
+    heartbeat = HeartbeatMonitor()
     person_detector = PersonDetector()
     shelf_detector = ShelfDetector(reference_frame, shelf_roi)
     debounce = OccupancyDebounce(surge_threshold)
@@ -290,6 +295,12 @@ def run_live(args, cfg: Dict[str, Any]):
         trend_decline_threshold=cfg.get('anomaly_trend_decline_threshold', -1.0),
         cooldown_samples=cfg.get('anomaly_cooldown_samples', 5),
     )
+    velocity = VelocityTracker(
+        window_size=cfg.get('velocity_window', 12),
+        min_samples=cfg.get('velocity_min_samples', 3),
+        rapid_threshold=cfg.get('rapid_depletion_threshold', 10.0),
+        critical_threshold=cfg.get('low_stock_threshold', 20.0),
+    )
 
     log.info(f"Person detector backend: {person_detector.backend}")
     log.info(f"Shelf detector backend: {shelf_detector._backend}")
@@ -300,7 +311,10 @@ def run_live(args, cfg: Dict[str, Any]):
         sys.exit(1)
 
     log.info(f"Camera {args.camera} opened. Posting every {interval}s to {args.api_url}")
+    if chaos_rate > 0.0:
+        log.warning(f"Network chaos simulation enabled (drop_rate={chaos_rate:.2f})")
     last_post = 0.0
+    vel_res = None
 
     try:
         while True:
@@ -327,6 +341,11 @@ def run_live(args, cfg: Dict[str, Any]):
                 }
                 log.info(f"Telemetry: occupancy={occupancy} fill={fill_ratio:.1f}% surge={surge_flag} low_stock={low_stock_flag}")
 
+                vel_res = velocity.ingest(fill_ratio)
+                stats.record_velocity(vel_res)
+                if vel_res.is_rapid_depletion:
+                    log.warning(f"[VELOCITY] Rapid shelf depletion: {vel_res}")
+
                 anom = anomaly.ingest(payload)
                 payload['anomalyFlag'] = anom.has_anomaly
                 if anom.has_anomaly:
@@ -341,7 +360,14 @@ def run_live(args, cfg: Dict[str, Any]):
                     payload['anomalyOccupancyZ'] = None
                     payload['anomalyFillZ'] = None
 
-                post_telemetry(payload, args.api_url, timeout=timeout)
+                result = post_telemetry(payload, args.api_url, timeout=timeout, chaos_rate=chaos_rate)
+                if result is not None:
+                    payload_bytes = len(json.dumps(payload))
+                    stats.record_success(payload, payload_bytes)
+                    heartbeat.record_success()
+                else:
+                    stats.record_failure()
+                    heartbeat.record_failure()
                 last_post = now
 
             # Show preview
@@ -357,6 +383,16 @@ def run_live(args, cfg: Dict[str, Any]):
     finally:
         cap.release()
         cv2.destroyAllWindows()
+        log.info("─" * 50)
+        log.info("SESSION SUMMARY")
+        log.info(f"[STATS] {stats}")
+        log.info(f"[HEARTBEAT] {heartbeat}")
+        log.info(f"[ANOMALY] {anomaly}")
+        if vel_res is not None:
+            log.info(f"[VELOCITY] {vel_res}")
+        log.info("─" * 50)
+
+    return stats, heartbeat, anomaly, velocity
 
 
 # ---------------------------------------------------------------------------
@@ -528,16 +564,25 @@ def preflight_health_check(api_url: str, max_attempts: int = 5, timeout: int = 5
     return report
 
 
-def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
+def generate_health_report(
+    api_url: str,
+    timeout: int = 5,
+    hb: Optional[Any] = None,
+    ad: Optional[Any] = None,
+    vt: Optional[Any] = None,
+) -> Dict[str, Any]:
     """Generate a comprehensive JSON health report for diagnostics."""
     from detectors import AnomalyDetector, VelocityTracker
     from heartbeat import HeartbeatMonitor
     from log_config import get_log_config_summary
     health = preflight_health_check(api_url, max_attempts=3, timeout=timeout)
     dlq_stats = get_dlq_age_stats()
-    hb = HeartbeatMonitor()
-    ad = AnomalyDetector()
-    vt = VelocityTracker()
+    if hb is None:
+        hb = HeartbeatMonitor()
+    if ad is None:
+        ad = AnomalyDetector()
+    if vt is None:
+        vt = VelocityTracker()
 
     return {
         'version': 'v0.8.0',
@@ -556,7 +601,11 @@ def generate_health_report(api_url: str, timeout: int = 5) -> Dict[str, Any]:
     }
 
 
-def run_diagnostics() -> Dict[str, Any]:
+def run_diagnostics(
+    hb: Optional[Any] = None,
+    ad: Optional[Any] = None,
+    vt: Optional[Any] = None,
+) -> Dict[str, Any]:
     """Collect local subsystem state without hitting the network.
 
     Useful for quick operator checks when the API might be unreachable.
@@ -566,9 +615,12 @@ def run_diagnostics() -> Dict[str, Any]:
     from log_config import get_log_config_summary
 
     dlq_stats = get_dlq_age_stats()
-    hb = HeartbeatMonitor()
-    ad = AnomalyDetector()
-    vt = VelocityTracker()
+    if hb is None:
+        hb = HeartbeatMonitor()
+    if ad is None:
+        ad = AnomalyDetector()
+    if vt is None:
+        vt = VelocityTracker()
 
     return {
         'version': 'v0.8.0',
